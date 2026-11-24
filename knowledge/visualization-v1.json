@@ -1,0 +1,43 @@
+{
+  "version": "1",
+  "guidance": "Choose a horizontal bar chart to compare one numeric measure across categories. Only use the provided field names. Do not invent fields or provide data. Return a JSON object with kind, x, y, and rationale.",
+  "proposal_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["kind", "x", "y", "rationale"],
+    "properties": {
+      "kind": { "const": "bar" },
+      "x": { "type": "string", "minLength": 1 },
+      "y": { "type": "string", "minLength": 1 },
+      "rationale": { "type": "string", "minLength": 1, "maxLength": 300 }
+    }
+  },
+  "contract_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "VisualizationContract",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["version", "kind", "title", "unit", "data"],
+    "if": { "properties": { "kind": { "const": "donut" } } },
+    "then": { "properties": { "data": { "contains": { "properties": { "value": { "exclusiveMinimum": 0 } } } } } },
+    "properties": {
+      "version": { "const": "1" },
+      "kind": { "enum": ["bar", "donut"] },
+      "title": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "unit": { "type": "string" },
+      "data": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "value"],
+          "properties": {
+            "label": { "type": "string", "minLength": 1, "pattern": "\\S" },
+            "value": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
