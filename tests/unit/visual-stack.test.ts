@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { KIND_RULES, layoutDashboard, parseVisualizationContract, toEChartsOption, VISUAL_KINDS } from '../../src/index.js';
-import type { VisualizationContractV2, VisualKind } from '../../src/index.js';
+import type { VisualizationContract, VisualKind } from '../../src/index.js';
 
-const base = { version: '2', title: 'T', unit: 'u' } as const;
-const samples: Record<Exclude<VisualKind, 'kpi' | 'table'>, VisualizationContractV2> = {
+const base = { title: 'T', unit: 'u' } as const;
+const samples: Record<Exclude<VisualKind, 'kpi' | 'table'>, VisualizationContract> = {
   bar: { ...base, kind: 'bar', data: [{ label: 'a', value: -1 }] },
   column: { ...base, kind: 'column', data: [{ label: 'a', value: 1 }] },
   donut: { ...base, kind: 'donut', data: [{ label: 'a', value: 1 }] },
@@ -19,7 +19,7 @@ const samples: Record<Exclude<VisualKind, 'kpi' | 'table'>, VisualizationContrac
   sankey: { ...base, kind: 'sankey', links: [{ source: 'a', target: 'b', value: 1 }] },
 };
 
-describe('version 2 contracts', () => {
+describe('visualization contracts', () => {
   it('accepts every chart kind and builds an ECharts option for it', () => {
     for (const contract of Object.values(samples)) {
       expect(parseVisualizationContract(contract)).toEqual(contract);
@@ -33,7 +33,7 @@ describe('version 2 contracts', () => {
     const table = { ...base, kind: 'table', columns: ['a', 'b'], rows: [['x', 1], [null, 2]] };
     expect(parseVisualizationContract(kpi)).toEqual(kpi);
     expect(parseVisualizationContract(table)).toEqual(table);
-    expect(() => toEChartsOption(parseVisualizationContract(kpi) as VisualizationContractV2)).toThrow(RangeError);
+    expect(() => toEChartsOption(parseVisualizationContract(kpi))).toThrow(RangeError);
   });
 
   it('rejects contracts that would misrepresent the data', () => {
@@ -56,8 +56,8 @@ describe('version 2 contracts', () => {
 });
 
 it('publishes knowledge that matches the kind rules', () => {
-  const knowledge = JSON.parse(readFileSync(new URL('../../knowledge/visualization-v2.json', import.meta.url), 'utf8'));
-  expect(knowledge.version).toBe('2');
+  const knowledge = JSON.parse(readFileSync(new URL('../../knowledge/visualization.json', import.meta.url), 'utf8'));
+  expect('version' in knowledge).toBe(false);
   expect(knowledge.kinds).toEqual(JSON.parse(JSON.stringify(KIND_RULES)));
   expect(Object.keys(knowledge.kinds)).toEqual(VISUAL_KINDS);
 });

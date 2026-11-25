@@ -2,16 +2,7 @@ import type { BarData } from './charts.js';
 import { KIND_RULES, isVisualKind } from './kinds.js';
 import type { VisualKind } from './kinds.js';
 
-export interface VisualizationContractV1 {
-  readonly version: '1';
-  readonly kind: 'bar' | 'donut';
-  readonly title: string;
-  readonly unit: string;
-  readonly data: readonly BarData[];
-}
-
 interface Base<K extends VisualKind> {
-  readonly version: '2';
   readonly kind: K;
   readonly title: string;
   readonly unit: string;
@@ -40,10 +31,8 @@ export type SankeyContract = Base<'sankey'> & {
 };
 export type TableContract = Base<'table'> & { readonly columns: readonly string[]; readonly rows: readonly (readonly Cell[])[] };
 
-export type VisualizationContractV2 =
+export type VisualizationContract =
   | KpiContract | CategoryContract | SeriesContract | HeatmapContract | ScatterContract | SankeyContract | TableContract;
-
-export type VisualizationContract = VisualizationContractV1 | VisualizationContractV2;
 
 const FIELDS: Record<VisualKind, readonly string[]> = {
   kpi: ['value'],
@@ -77,31 +66,14 @@ function labels(value: unknown, name: string): string[] {
   return [...value];
 }
 
-function parseV1(value: Record<string, unknown>): VisualizationContractV1 {
-  if (!keysMatch(value, ['version', 'kind', 'title', 'unit', 'data'])
-    || (value.kind !== 'bar' && value.kind !== 'donut')
-    || !isText(value.title) || typeof value.unit !== 'string' || !Array.isArray(value.data) || value.data.length === 0) {
-    fail('expected a version 1 bar or donut chart.');
-  }
-  const data = value.data.map((entry: unknown) => {
-    if (!isRecord(entry) || !keysMatch(entry, ['label', 'value']) || !isText(entry.label)
-      || !isFinite(entry.value) || entry.value < 0) {
-      fail('chart data requires a label and non-negative finite value.');
-    }
-    return { label: entry.label, value: entry.value };
-  });
-  if (value.kind === 'donut' && !data.some((entry) => entry.value > 0)) fail('a donut requires a positive total.');
-  return { version: '1', kind: value.kind, title: value.title, unit: value.unit, data };
-}
-
-function parseV2(value: Record<string, unknown>): VisualizationContractV2 {
+function parseCurrent(value: Record<string, unknown>): VisualizationContract {
   const kind = value.kind;
-  if (!isVisualKind(kind)) fail('unsupported version 2 kind.');
-  if (!keysMatch(value, ['version', 'kind', 'title', 'unit', ...FIELDS[kind]])) {
-    fail(`a ${kind} requires exactly version, kind, title, unit and ${FIELDS[kind].join(', ')}.`);
+  if (!isVisualKind(kind)) fail('unsupported kind.');
+  if (!keysMatch(value, ['kind', 'title', 'unit', ...FIELDS[kind]])) {
+    fail(`a ${kind} requires exactly kind, title, unit and ${FIELDS[kind].join(', ')}.`);
   }
   if (!isText(value.title) || typeof value.unit !== 'string') fail('a title and unit are required.');
-  const base = { version: '2' as const, title: value.title, unit: value.unit };
+  const base = { title: value.title, unit: value.unit };
   const additive = KIND_RULES[kind].additive;
 
   switch (kind) {
@@ -208,7 +180,5 @@ function hasCycle(links: readonly { source: string; target: string }[]) {
 
 export function parseVisualizationContract(value: unknown): VisualizationContract {
   if (!isRecord(value)) fail('expected an object.');
-  if (value.version === '1') return parseV1(value);
-  if (value.version === '2') return parseV2(value);
-  fail('unsupported version.');
+  return parseCurrent(value);
 }
