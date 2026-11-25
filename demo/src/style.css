@@ -136,10 +136,15 @@ button:disabled { @apply cursor-default; }
 .visual-card h2 { @apply mt-0.5 text-sm font-medium; }
 .visual-card > header p { @apply text-[10px] tracking-widest text-accent uppercase; }
 .visual-card footer { @apply border-t border-rule px-3.5 py-2 text-[11px] leading-relaxed text-subtle; }
-.visual-mount { @apply min-h-64 p-3; }
+.visual-mount { @apply p-3; }
 .visual-card:not([data-kind="kpi"]):not([data-kind="table"]) { @apply grid grid-rows-[auto_1fr_auto]; }
-.visual-card:not([data-kind="kpi"]):not([data-kind="table"]) .visual-mount { @apply min-h-72; }
+.visual-card:not([data-kind="kpi"]):not([data-kind="table"]) .visual-mount { min-height: clamp(190px, 20vw, 280px); }
+.visual-card[data-kind="line"] .visual-mount,
+.visual-card[data-kind="area"] .visual-mount { min-height: clamp(220px, 24vw, 320px); }
+.visual-card[data-kind="heatmap"] .visual-mount,
+.visual-card[data-kind="sankey"] .visual-mount { min-height: clamp(240px, 26vw, 340px); }
 .visual-card[data-kind="kpi"] .visual-mount { @apply min-h-28; }
+.visual-card[data-kind="table"] .visual-mount { @apply min-h-48; }
 .report-grid { grid-auto-rows: minmax(180px, auto); }
 .report-preview { @apply grid grid-cols-12 gap-4; }
 .report-preview .visual-card { @apply col-auto; }
