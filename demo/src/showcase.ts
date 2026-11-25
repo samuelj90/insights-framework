@@ -16,6 +16,10 @@ export function startVisualStackDemo() {
   let inspectorOpen = false;
   let streamTimer: number | undefined;
   const rendered = new Map<string, RenderedVisualization>();
+  const clockLabel = (offsetSeconds = 0) => new Date(Date.now() + offsetSeconds * 1000)
+    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const rollingLabels = (count: number, stepSeconds: number) =>
+    Array.from({ length: count }, (_, index) => clockLabel((index - count + 1) * stepSeconds));
 
   const escape = (value: unknown) => String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -144,7 +148,9 @@ export function startVisualStackDemo() {
       <p>Edit a visual definition, or paste several to compose a report.</p>
       <button type="button" id="load-report">Load report example</button></section>
       <section class="editor-grid"><label class="editor-pane"><span>Visual definition</span>
-        <textarea id="contract-editor" aria-label="Visualization contract JSON" spellcheck="false">${escape(contractText)}</textarea></label>
+        <textarea id="contract-editor" aria-label="Visualization contract JSON" spellcheck="false"
+          aria-controls="editor-completions" aria-autocomplete="list">${escape(contractText)}</textarea>
+        <div id="editor-completions" class="completion-list" role="listbox" hidden></div></label>
         <div class="preview-pane"><div class="preview-head"><span>Preview</span><div>
           <button type="button" id="copy-snapshot">Copy snapshot</button>
           <button type="button" id="export-svg">Export SVG</button></div></div>
@@ -225,7 +231,23 @@ export function startVisualStackDemo() {
       document.querySelector('.inspector')?.removeAttribute('hidden');
     }));
     const input = document.querySelector<HTMLTextAreaElement>('#contract-editor');
-    input?.addEventListener('input', () => { contractText = input.value; renderEditor(); });
+    input?.addEventListener('input', () => {
+      contractText = input.value;
+      renderEditor();
+      showCompletions(input);
+    });
+    input?.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.code === 'Space') {
+        event.preventDefault();
+        showCompletions(input, true);
+      }
+      if (event.key === 'Escape') hideCompletions();
+      const active = document.querySelector<HTMLButtonElement>('#editor-completions button');
+      if (active && (event.key === 'Tab' || event.key === 'Enter')) {
+        event.preventDefault();
+        active.click();
+      }
+    });
     document.querySelector('#load-report')?.addEventListener('click', () => {
       contractText = JSON.stringify(['kpi', 'line', 'donut', 'table'].map((kind) => examples[kind as VisualKind]), null, 2);
       render();
@@ -236,6 +258,44 @@ export function startVisualStackDemo() {
     if (mode === 'editor') {
       renderEditor();
       subscribeEditorInteractions();
+    }
+
+    const completionItems = [
+      ...VISUAL_KINDS.map((kind) => ({ label: kind, insert: `"${kind}"`, detail: KIND_RULES[kind].use })),
+      ...['kind', 'title', 'unit', 'value', 'data', 'categories', 'series', 'x', 'y', 'cells',
+        'axes', 'points', 'links', 'columns', 'rows', 'layout', 'minHeight', 'maxHeight', 'aspectRatio']
+        .map((key) => ({ label: key, insert: `"${key}"`, detail: `JSON field: ${key}` })),
+    ];
+
+    function hideCompletions() {
+      const list = document.querySelector<HTMLElement>('#editor-completions');
+      if (list) list.hidden = true;
+    }
+
+    function showCompletions(input: HTMLTextAreaElement, force = false) {
+      const list = document.querySelector<HTMLElement>('#editor-completions');
+      if (!list) return;
+      const before = input.value.slice(0, input.selectionStart);
+      const match = before.match(/["A-Za-z_][A-Za-z0-9_ -]*$/);
+      const query = (match?.[0] ?? '').replaceAll('"', '').toLowerCase();
+      const matches = completionItems.filter((item) => !query || item.label.toLowerCase().includes(query)).slice(0, 8);
+      if (!force && query.length < 2 || !matches.length) { hideCompletions(); return; }
+      list.replaceChildren(...matches.map((item) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('role', 'option');
+        button.innerHTML = `<strong>${item.label}</strong><small>${escape(item.detail)}</small>`;
+        button.addEventListener('click', () => {
+          const start = input.selectionStart - (match?.[0].length ?? 0);
+          input.setRangeText(item.insert, start, input.selectionStart, 'end');
+          contractText = input.value;
+          hideCompletions();
+          input.focus();
+          renderEditor();
+        });
+        return button;
+      }));
+      list.hidden = false;
     }
     document.querySelector('#copy-snapshot')?.addEventListener('click', async () => {
       const snapshot = rendered.get('editor-visual')?.snapshot();
@@ -260,6 +320,7 @@ export function startVisualStackDemo() {
       ...base,
       title: 'Live payment stream',
       unit: 'payments / second',
+      categories: rollingLabels(base.series[0]!.values.length, 1),
       series: [{ name: 'Payments', values: [...base.series[0]!.values] }],
     };
     mount('live-demo-visual', line);
@@ -280,8 +341,9 @@ export function startVisualStackDemo() {
           ...series,
           values: [...series.values.slice(1), (series.values.at(-1) ?? 0) + Math.round(Math.sin(tick) * 7) + 3],
         }));
-        current = { ...current, categories: [...current.categories.slice(1), `+${tick}s`], series: latest };
-        visual.update({ category: `+${tick}s`, values: Object.fromEntries(latest.map((series) => [
+        const category = clockLabel();
+        current = { ...current, categories: [...current.categories.slice(1), category], series: latest };
+        visual.update({ category, values: Object.fromEntries(latest.map((series) => [
           series.name, series.values.at(-1) ?? 0,
         ])) }, { mode: 'append', maxPoints: 12, throttleMs: 100 });
         const rate = Math.max(60, 87 + Math.round(Math.sin(tick) * 9));
@@ -319,7 +381,7 @@ export function startVisualStackDemo() {
       kind: 'line' as const,
       title: 'Processed payments',
       unit: 'payments / min',
-      categories: ['08:00', '08:05', '08:10', '08:15', '08:20', '08:25', '08:30', '08:35'],
+      categories: rollingLabels(8, 2),
       series: [{ name: 'Processed payments', values: [157, 171, 170, 171, 188, 198, 189, 199] }],
     };
     mount('overview-visual', line);
@@ -331,7 +393,7 @@ export function startVisualStackDemo() {
       tick += 1;
       current = {
         ...current,
-        categories: [...current.categories.slice(1), `+${tick}s`],
+        categories: [...current.categories.slice(1), clockLabel()],
         series: current.series.map((series) => ({
           ...series,
           values: [...series.values.slice(1), (series.values.at(-1) ?? 0)

@@ -5,6 +5,10 @@ test('overview presents the product story and preview', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Build the view/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Inspector' })).toHaveCount(0);
   await expect(page.locator('#overview-visual')).toHaveAttribute('role', 'img');
+  const initialTime = await page.locator('#overview-visual text').last().textContent();
+  await page.waitForTimeout(1800);
+  expect(await page.locator('#overview-visual text').last().textContent()).not.toContain('+');
+  expect(await page.locator('#overview-visual text').last().textContent()).not.toBe(initialTime);
   await expect(page.getByText('Processed volume')).toBeVisible();
   await expect(page.getByText('Payment methods')).toBeVisible();
   await expect(page.getByText('processor_a recovered')).toBeVisible();
@@ -52,6 +56,16 @@ test('editor validates contracts and explains knowledge payloads', async ({ page
   await expect(page.getByRole('button', { name: 'Export SVG' })).toBeVisible();
   await input.fill(JSON.stringify({ guidance: 'AI planning rules', kinds: { bar: {} } }));
   await expect(page.getByRole('alert')).toContainText('visualization planning guidance');
+});
+
+test('editor offers JSON completion for contract fields', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Editor', exact: true }).click();
+  const input = page.getByLabel('Visualization contract JSON');
+  await input.fill('{"ki');
+  await expect(page.getByRole('listbox')).toContainText('kind');
+  await input.press('Control+Space');
+  await expect(page.getByRole('option').first()).toBeVisible();
 });
 
 test('editor composes an array of contracts as a report', async ({ page }) => {

@@ -160,9 +160,13 @@ button:disabled { @apply cursor-default; }
 .inspector dd { @apply mt-1; }
 .inspector pre { @apply overflow-auto whitespace-pre-wrap rounded border border-rule bg-sunk p-3 font-mono text-[11px] text-ink; }
 .editor-grid { @apply mx-auto grid min-h-[620px] max-w-6xl grid-cols-2 overflow-hidden rounded-md border border-rule bg-plate; }
-.editor-pane { @apply grid min-w-0 grid-rows-[auto_1fr] border-r border-rule bg-sunk; }
+.editor-pane { @apply relative grid min-w-0 grid-rows-[auto_1fr] border-r border-rule bg-sunk; }
 .editor-pane > span, .preview-head { @apply border-b border-rule px-3 py-2 text-xs text-subtle; }
 .editor-pane textarea { @apply min-h-[560px] resize-none bg-sunk p-4 font-mono text-xs leading-6 text-ink outline-none; }
+.completion-list { @apply absolute top-11 left-3 z-20 w-72 overflow-hidden rounded-md border border-strong bg-plate shadow-2xl; }
+.completion-list button { @apply flex w-full flex-col border-b border-rule px-3 py-2 text-left last:border-0 hover:bg-sunk; }
+.completion-list strong { @apply font-mono text-xs text-ink; }
+.completion-list small { @apply mt-0.5 text-[10px] leading-relaxed text-subtle; }
 .preview-head { @apply flex items-center justify-between; }
 .preview-head > div { @apply flex flex-wrap justify-end gap-1.5; }
 .preview-head button { @apply rounded border border-rule px-2 py-1 text-[11px] text-muted hover:border-accent hover:text-accent; }
