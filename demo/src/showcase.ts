@@ -49,7 +49,7 @@ export function startVisualStackDemo() {
   function tile(kind: VisualKind) {
     const contract = examples[kind];
     return `<article class="visual-card col-4" data-kind="${kind}">
-      <header><div><p>${escape(KIND_RULES[kind].family)}</p><h2>${escape(contract.title)}</h2></div>
+      <header><h2>${escape(contract.title)}</h2>
         <button type="button" data-open="${kind}">Inspect</button></header>
       <div class="visual-mount" id="visual-${kind}"></div>
       <footer>${escape(KIND_RULES[kind].use)}</footer></article>`;
@@ -146,7 +146,14 @@ export function startVisualStackDemo() {
   function editor() {
     return `<section class="intro"><p class="eyebrow">Try Visual Stack</p><h1>Build and preview</h1>
       <p>Edit a visual definition, or paste several to compose a report.</p>
-      <button type="button" id="load-report">Load report example</button></section>
+      <label class="example-select">Layout example
+        <select id="layout-example">
+          <option value="executive">Executive overview</option>
+          <option value="operations">Operations</option>
+          <option value="detail">Detail analysis</option>
+        </select>
+      </label>
+      <button type="button" id="load-report">Load layout</button></section>
       <section class="editor-grid"><label class="editor-pane"><span>Visual definition</span>
         <textarea id="contract-editor" aria-label="Visualization contract JSON" spellcheck="false"
           aria-controls="editor-completions" aria-autocomplete="list">${escape(contractText)}</textarea>
@@ -181,7 +188,7 @@ export function startVisualStackDemo() {
     host.className = 'visual-mount editor-visual report-preview';
     host.innerHTML = layout.grid.items.map((item) =>
       `<article class="visual-card" data-kind="${item.content.kind}" style="grid-column:${item.layout.x + 1}/span ${item.layout.w};grid-row:${item.layout.y + 1}/span ${item.layout.h}">
-        <header><div><p>${item.content.kind}</p><h2>${escape(item.content.title)}</h2></div></header>
+        <header><h2>${escape(item.content.title)}</h2></header>
         <div class="visual-mount" id="editor-${item.id}"></div></article>`).join('');
     for (const item of layout.grid.items) mount(`editor-${item.id}`, item.content);
     if (error) error.hidden = true;
@@ -249,7 +256,16 @@ export function startVisualStackDemo() {
       }
     });
     document.querySelector('#load-report')?.addEventListener('click', () => {
-      contractText = JSON.stringify(['kpi', 'line', 'donut', 'table'].map((kind) => examples[kind as VisualKind]), null, 2);
+      const preset = document.querySelector<HTMLSelectElement>('#layout-example')?.value ?? 'executive';
+      const kinds: VisualKind[] = preset === 'operations'
+        ? ['kpi', 'line', 'heatmap', 'bar', 'table']
+        : preset === 'detail'
+          ? ['line', 'scatter', 'heatmap', 'table']
+          : ['kpi', 'kpi', 'line', 'donut', 'table'];
+      const contracts = kinds.map((kind, index) => kind === 'kpi' && index === 1
+        ? { ...examples.kpi, title: 'Success rate', unit: '%', value: 98.2 }
+        : examples[kind]);
+      contractText = JSON.stringify(contracts, null, 2);
       render();
     });
     if (mode === 'overview') startOverviewPreview();

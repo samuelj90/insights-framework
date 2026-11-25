@@ -150,6 +150,8 @@ button:disabled { @apply cursor-default; }
 .report-preview .visual-card { @apply col-auto m-0 min-w-0; }
 .report-preview .visual-card .visual-mount { min-height: 0; height: 100%; }
 #load-report { @apply mt-3 rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-accent hover:text-accent; }
+.example-select { @apply mt-3 mr-2 inline-flex items-center gap-2 text-xs text-muted; }
+.example-select select { @apply rounded border border-rule bg-plate px-2.5 py-1.5 text-xs text-ink; }
 .inspector { @apply fixed inset-y-12 right-0 z-30 w-[min(360px,100%)] overflow-auto border-l border-rule bg-canvas p-4 text-[13px] text-muted shadow-2xl; }
 .inspector[hidden] { @apply hidden; }
 .inspector::before { content: 'Inspector'; @apply mb-3 block font-mono text-[10px] tracking-widest text-subtle uppercase; }

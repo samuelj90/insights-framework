@@ -25,6 +25,7 @@ test('gallery renders every Visual Stack kind', async ({ page }) => {
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'One definition. Every visual.' })).toBeVisible();
   await expect(page.locator('.visual-card')).toHaveCount(14);
+  await expect(page.locator('.visual-card header > div > p')).toHaveCount(0);
 });
 
 test('live page demonstrates streaming updates', async ({ page }) => {
@@ -65,14 +66,15 @@ test('editor offers JSON completion for contract fields', async ({ page }) => {
   await input.fill('{"ki');
   await expect(page.getByRole('listbox')).toContainText('kind');
   await input.press('Control+Space');
-  await expect(page.getByRole('option').first()).toBeVisible();
+  await expect(page.getByRole('listbox').getByRole('option').first()).toBeVisible();
 });
 
 test('editor composes an array of contracts as a report', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Editor', exact: true }).click();
-  await page.getByRole('button', { name: 'Load report example' }).click();
-  await expect(page.locator('.report-preview .visual-card')).toHaveCount(4);
+  await page.getByLabel('Layout example').selectOption('operations');
+  await page.getByRole('button', { name: 'Load layout' }).click();
+  await expect(page.locator('.report-preview .visual-card')).toHaveCount(5);
   const cards = await page.locator('.report-preview .visual-card').all();
   const boxes = await Promise.all(cards.map((card) => card.boundingBox()));
   expect(boxes.every((box) => box && box.width > 0 && box.height > 0)).toBe(true);
