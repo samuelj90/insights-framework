@@ -174,7 +174,7 @@ export function startVisualStackDemo() {
     }
     host.className = 'visual-mount editor-visual report-preview';
     host.innerHTML = layout.grid.items.map((item) =>
-      `<article class="visual-card" style="grid-column:${item.layout.x + 1}/span ${item.layout.w};grid-row:${item.layout.y + 1}/span ${item.layout.h}">
+      `<article class="visual-card" data-kind="${item.content.kind}" style="grid-column:${item.layout.x + 1}/span ${item.layout.w};grid-row:${item.layout.y + 1}/span ${item.layout.h}">
         <header><div><p>${item.content.kind}</p><h2>${escape(item.content.title)}</h2></div></header>
         <div class="visual-mount" id="editor-${item.id}"></div></article>`).join('');
     for (const item of layout.grid.items) mount(`editor-${item.id}`, item.content);
@@ -217,6 +217,7 @@ export function startVisualStackDemo() {
       render();
     }));
     document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((button) => button.addEventListener('click', () => {
+      if (mode !== 'gallery') return;
       selected = button.dataset.open as VisualKind;
       contractText = JSON.stringify(examples[selected], null, 2);
       inspectorOpen = true;
@@ -348,7 +349,7 @@ export function startVisualStackDemo() {
         `<button type="button" data-mode="${view}" aria-pressed="${mode === view}">${(view[0] ?? '').toUpperCase() + view.slice(1)}</button>`).join('')}</nav>
     </header>
       <div class="shell"><main>${mode === 'overview' ? overview() : mode === 'gallery' ? gallery() : mode === 'live' ? live() : editor()}</main>
-        <aside class="inspector" aria-label="Inspector"${inspectorOpen ? '' : ' hidden'}>${inspectorBody()}</aside></div>`;
+        ${mode === 'gallery' ? `<aside class="inspector" aria-label="Inspector"${inspectorOpen ? '' : ' hidden'}>${inspectorBody()}</aside>` : ''}</div>`;
     bind();
   }
 
