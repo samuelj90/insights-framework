@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 test('overview presents the product story and preview', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Build the view/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Inspector' })).toHaveCount(0);
   await expect(page.locator('#overview-visual')).toHaveAttribute('role', 'img');
   await expect(page.getByText('From snapshot to story')).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeHidden();
@@ -11,6 +12,8 @@ test('overview presents the product story and preview', async ({ page }) => {
 test('gallery renders every Visual Stack kind', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Gallery', exact: true }).click();
+  const main = await page.locator('.shell > main').boundingBox();
+  expect(main?.x).toBeGreaterThanOrEqual(0);
   await page.getByRole('button', { name: 'Inspect' }).first().click();
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'One definition. Every visual.' })).toBeVisible();

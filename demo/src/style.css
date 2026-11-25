@@ -26,15 +26,16 @@ button:disabled { @apply cursor-default; }
 .spacer { @apply flex-1; }
 .wordmark { @apply text-sm font-semibold tracking-wide; }
 .tag { @apply text-xs text-subtle; }
-.topbar { @apply flex h-12 shrink-0 items-center gap-4 border-b border-rule px-4; }
+.topbar { @apply sticky top-0 z-40 flex h-14 shrink-0 items-center gap-4 border-b border-rule bg-canvas/95 px-6 backdrop-blur; }
+.topbar .seg { @apply ml-auto; }
 .seg { @apply flex overflow-hidden rounded border border-rule; }
 .seg button { @apply px-3 py-1 text-[13px] text-subtle; }
 .seg button[aria-pressed="true"] { @apply bg-sunk font-medium text-ink; }
 .seg button + button { @apply border-l border-rule; }
-#inspector-toggle, [data-open], #stream-toggle, #live-example, #live-reset { @apply rounded border border-rule px-2.5 py-1 text-xs text-muted hover:border-strong hover:text-ink; }
+[data-open], #stream-toggle, #live-example, #live-reset { @apply rounded border border-rule px-2.5 py-1 text-xs text-muted hover:border-strong hover:text-ink; }
 .shell { @apply relative min-h-0 flex-1; }
-.shell > main { @apply mx-auto w-full max-w-[1600px] min-w-0 overflow-auto p-6; }
-.intro { @apply mb-6 max-w-3xl; }
+.shell > main { @apply mx-auto w-full max-w-[1480px] min-w-0 overflow-visible px-6 py-8; }
+.intro { @apply mx-auto mb-8 max-w-6xl; }
 .intro h1 { @apply font-serif text-[32px] leading-tight; }
 .intro > p:last-child { @apply mt-2 text-sm text-muted; }
 .hero-showcase { @apply mx-auto grid w-full max-w-6xl grid-cols-[.9fr_1.1fr] items-center gap-12 py-16 text-left; }
@@ -85,8 +86,8 @@ button:disabled { @apply cursor-default; }
 .quick-start { @apply my-8 grid grid-cols-[.7fr_1.3fr] items-center gap-6 rounded-md border border-rule bg-sunk p-6; }
 .quick-start h2 { @apply text-xl font-semibold; }
 .quick-start pre, .live-copy pre { @apply overflow-auto rounded border border-rule bg-canvas p-4 font-mono text-xs leading-6 text-ink; }
-.live-demo-grid { @apply grid grid-cols-[minmax(0,1.4fr)_minmax(280px,.6fr)] gap-5; }
-.live-metrics { @apply mb-5 grid grid-cols-3 gap-4; }
+.live-demo-grid { @apply mx-auto grid max-w-6xl grid-cols-[minmax(0,1.4fr)_minmax(280px,.6fr)] gap-5; }
+.live-metrics { @apply mx-auto mb-5 grid max-w-6xl grid-cols-3 gap-4; }
 .live-metrics article { @apply rounded-lg border border-rule bg-plate p-4; }
 .live-metrics p { @apply text-xs text-muted; }
 .live-metrics strong { @apply mt-1 block font-mono text-3xl; }
@@ -112,7 +113,7 @@ button:disabled { @apply cursor-default; }
 .event-stream strong { @apply font-mono font-medium text-ink; }
 .event-stream small { @apply text-muted; }
 .eyebrow { @apply mb-1 text-[11px] tracking-[.12em] text-accent uppercase; }
-.visual-grid { @apply grid grid-cols-12 gap-4; }
+.visual-grid { @apply mx-auto grid max-w-6xl grid-cols-12 gap-4; }
 .visual-card { @apply col-span-4 min-w-0 overflow-hidden rounded-md border border-rule bg-plate; }
 .visual-card.col-3 { @apply col-span-3; }
 .visual-card.col-6 { @apply col-span-6; }
@@ -137,7 +138,7 @@ button:disabled { @apply cursor-default; }
 .inspector dt { @apply text-[10px] tracking-widest text-subtle uppercase; }
 .inspector dd { @apply mt-1; }
 .inspector pre { @apply overflow-auto whitespace-pre-wrap rounded border border-rule bg-sunk p-3 font-mono text-[11px] text-ink; }
-.editor-grid { @apply grid min-h-[620px] grid-cols-2 overflow-hidden rounded-md border border-rule bg-plate; }
+.editor-grid { @apply mx-auto grid min-h-[620px] max-w-6xl grid-cols-2 overflow-hidden rounded-md border border-rule bg-plate; }
 .editor-pane { @apply grid min-w-0 grid-rows-[auto_1fr] border-r border-rule bg-sunk; }
 .editor-pane > span, .preview-head { @apply border-b border-rule px-3 py-2 text-xs text-subtle; }
 .editor-pane textarea { @apply min-h-[560px] resize-none bg-sunk p-4 font-mono text-xs leading-6 text-ink outline-none; }
@@ -154,7 +155,7 @@ button:disabled { @apply cursor-default; }
 
 @media (max-width: 900px) {
   .shell { @apply block; }
-  .shell > main { @apply p-5; }
+  .shell > main { @apply px-5 py-6; }
   .visual-grid { @apply grid-cols-2; }
   .visual-card, .visual-card.col-3, .visual-card.col-6, .visual-card.col-8, .visual-card.col-12 { @apply col-span-1; }
   .inspector { @apply fixed inset-y-12 right-0 z-20 w-[min(320px,100%)] shadow-xl; }

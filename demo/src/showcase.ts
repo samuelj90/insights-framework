@@ -216,17 +216,13 @@ export function startVisualStackDemo() {
       updateInspector();
       document.querySelector('.inspector')?.removeAttribute('hidden');
     }));
-    document.querySelector('#inspector-toggle')?.addEventListener('click', () => {
-      inspectorOpen = !inspectorOpen;
-      render();
-    });
     const input = document.querySelector<HTMLTextAreaElement>('#contract-editor');
     input?.addEventListener('input', () => { contractText = input.value; renderEditor(); });
     document.querySelector('#load-report')?.addEventListener('click', () => {
       contractText = JSON.stringify(['kpi', 'line', 'donut', 'table'].map((kind) => examples[kind as VisualKind]), null, 2);
       render();
     });
-    if (mode === 'overview') mount('overview-visual', examples.line);
+    if (mode === 'overview') startOverviewPreview();
     if (mode === 'gallery') for (const kind of VISUAL_KINDS) mount(`visual-${kind}`, examples[kind]);
     if (mode === 'live') startLiveDemo();
     if (mode === 'editor') {
@@ -285,6 +281,7 @@ export function startVisualStackDemo() {
           events.prepend(item);
           while (events.children.length > 5) events.lastElementChild?.remove();
         }
+
       }, 1000);
     };
     start();
@@ -302,13 +299,37 @@ export function startVisualStackDemo() {
     });
   }
 
+  function startOverviewPreview() {
+    const line = examples.line;
+    if (line.kind !== 'line') return;
+    mount('overview-visual', line);
+    const visual = rendered.get('overview-visual');
+    if (!visual) return;
+    let current = line;
+    let tick = 0;
+    streamTimer = window.setInterval(() => {
+      tick += 1;
+      current = {
+        ...current,
+        categories: [...current.categories.slice(1), `+${tick}s`],
+        series: current.series.map((series) => ({
+          ...series,
+          values: [...series.values.slice(1), (series.values.at(-1) ?? 0)
+            + Math.round(Math.sin(tick) * 4) + 2],
+        })),
+      };
+      visual.update(current, { throttleMs: 80, maxPoints: 8 });
+      visual.flush();
+    }, 1600);
+  }
+
   function render() {
     destroyCharts();
     root!.innerHTML = `<header class="topbar"><span class="wordmark">Visual Stack</span>
       <span class="tag">Visuals for every story</span><div class="spacer"></div>
       <nav class="seg" aria-label="Demo views">${(['overview', 'gallery', 'live', 'editor'] as Mode[]).map((view) =>
         `<button type="button" data-mode="${view}" aria-pressed="${mode === view}">${(view[0] ?? '').toUpperCase() + view.slice(1)}</button>`).join('')}</nav>
-      <button type="button" id="inspector-toggle" aria-expanded="${inspectorOpen}">Inspector</button></header>
+    </header>
       <div class="shell"><main>${mode === 'overview' ? overview() : mode === 'gallery' ? gallery() : mode === 'live' ? live() : editor()}</main>
         <aside class="inspector" aria-label="Inspector"${inspectorOpen ? '' : ' hidden'}>${inspectorBody()}</aside></div>`;
     bind();
