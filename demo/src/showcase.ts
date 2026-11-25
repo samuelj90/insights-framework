@@ -13,7 +13,7 @@ export function startVisualStackDemo() {
   let mode: Mode = 'overview';
   let selected: VisualKind = 'bar';
   let contractText = JSON.stringify(examples[selected], null, 2);
-  let inspectorOpen = true;
+  let inspectorOpen = false;
   let streamTimer: number | undefined;
   const rendered = new Map<string, RenderedVisualization>();
 
@@ -26,6 +26,14 @@ export function startVisualStackDemo() {
     streamTimer = undefined;
     for (const visual of rendered.values()) visual.destroy();
     rendered.clear();
+  }
+
+  function subscribeEditorInteractions() {
+    rendered.get('editor-visual')?.onInteraction((event) => {
+      const status = document.querySelector<HTMLElement>('#interaction-status');
+      if (status) status.textContent = `${event.type}: ${event.name ?? event.seriesName ?? 'visual'}`
+        + (event.value !== undefined ? ` · ${String(event.value)}` : '');
+    });
   }
 
   function mount(id: string, contract: unknown) {
@@ -102,17 +110,24 @@ export function startVisualStackDemo() {
   function live() {
     return `<section class="intro"><p class="eyebrow">Live views</p><h1>Streaming without chart churn</h1>
       <p>Visual Stack receives validated snapshots from any host transport and updates the existing visual in place.</p></section>
+      <section class="live-metrics">
+        <article><p>Payments / second</p><strong id="live-throughput">87</strong><span class="live-positive">+6.4%</span></article>
+        <article><p>P95 latency</p><strong id="live-latency">184 ms</strong><span>rolling 60s</span></article>
+        <article><p>Success rate</p><strong id="live-success">98.2%</strong><span class="live-positive">healthy</span></article>
+      </section>
       <section class="live-demo-grid">
-        <article class="live-story"><p class="eyebrow">Payments per second</p>
+        <article class="live-story"><div class="live-story-title"><div><p class="eyebrow">Payments per second</p>
+            <h2>Live payment stream</h2></div><span class="live-pulse">Live</span></div>
           <div class="visual-mount live-hero" id="live-demo-visual"></div>
           <div class="live-controls"><button type="button" id="live-demo-toggle">Pause stream</button>
-            <span id="live-status">Receiving 1 update / second</span></div></article>
+            <span id="live-status">Receiving 1 update / second</span></div>
+          <ol class="event-stream" id="live-events" aria-label="Latest stream events"></ol></article>
         <aside class="live-copy"><h2>Transport is your choice</h2>
           <p>Connect SSE, WebSocket, polling, or an in-process event source in the host application.</p>
           <pre><code>source.onmessage = (event) => {
   visual.update(JSON.parse(event.data));
 };</code></pre>
-          <ul><li>Reuse the chart instance</li><li>Validate every snapshot</li><li>Bound the rolling window in the host</li><li>Clean up with <code>destroy()</code></li></ul>
+          <ul><li>Append or patch a live series</li><li>Throttle rapid events</li><li>Keep a bounded rolling window</li><li>Reuse interactions and cleanup</li></ul>
         </aside>
       </section>`;
   }
@@ -123,9 +138,11 @@ export function startVisualStackDemo() {
       <button type="button" id="load-report">Load report example</button></section>
       <section class="editor-grid"><label class="editor-pane"><span>Visual definition</span>
         <textarea id="contract-editor" aria-label="Visualization contract JSON" spellcheck="false">${escape(contractText)}</textarea></label>
-        <div class="preview-pane"><div class="preview-head"><span>Preview</span>
-          <button type="button" id="stream-toggle">Start streaming</button></div>
+        <div class="preview-pane"><div class="preview-head"><span>Preview</span><div>
+          <button type="button" id="copy-snapshot">Copy snapshot</button>
+          <button type="button" id="export-svg">Export SVG</button></div></div>
           <div class="visual-mount editor-visual" id="editor-visual"></div><p id="contract-error" role="alert" hidden></p>
+          <p class="interaction-status" id="interaction-status">Select or hover a point to inspect its interaction event. For live updates, open Live.</p>
         </div></section>`;
   }
 
@@ -209,11 +226,27 @@ export function startVisualStackDemo() {
       contractText = JSON.stringify(['kpi', 'line', 'donut', 'table'].map((kind) => examples[kind as VisualKind]), null, 2);
       render();
     });
-    document.querySelector('#stream-toggle')?.addEventListener('click', () => toggleStreaming());
     if (mode === 'overview') mount('overview-visual', examples.line);
     if (mode === 'gallery') for (const kind of VISUAL_KINDS) mount(`visual-${kind}`, examples[kind]);
     if (mode === 'live') startLiveDemo();
-    if (mode === 'editor') renderEditor();
+    if (mode === 'editor') {
+      renderEditor();
+      subscribeEditorInteractions();
+    }
+    document.querySelector('#copy-snapshot')?.addEventListener('click', async () => {
+      const snapshot = rendered.get('editor-visual')?.snapshot();
+      if (!snapshot) return;
+      await navigator.clipboard.writeText(JSON.stringify(snapshot.contract, null, 2));
+    });
+    document.querySelector('#export-svg')?.addEventListener('click', () => {
+      const svg = rendered.get('editor-visual')?.snapshot().svg;
+      if (!svg) return;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+      link.download = 'visual-stack.svg';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
   }
 
   function startLiveDemo() {
@@ -226,6 +259,10 @@ export function startVisualStackDemo() {
     if (!visual || !button || !status) return;
     let current = line;
     let tick = 0;
+    const events = document.querySelector<HTMLElement>('#live-events');
+    const throughput = document.querySelector<HTMLElement>('#live-throughput');
+    const latency = document.querySelector<HTMLElement>('#live-latency');
+    const success = document.querySelector<HTMLElement>('#live-success');
     const start = () => {
       streamTimer = window.setInterval(() => {
         tick += 1;
@@ -234,7 +271,20 @@ export function startVisualStackDemo() {
           values: [...series.values.slice(1), (series.values.at(-1) ?? 0) + Math.round(Math.sin(tick) * 7) + 3],
         }));
         current = { ...current, categories: [...current.categories.slice(1), `+${tick}s`], series: latest };
-        visual.update(current);
+        visual.update({ category: `+${tick}s`, values: Object.fromEntries(latest.map((series) => [
+          series.name, series.values.at(-1) ?? 0,
+        ])) }, { mode: 'append', maxPoints: 12, throttleMs: 100 });
+        const rate = Math.max(60, 87 + Math.round(Math.sin(tick) * 9));
+        if (throughput) throughput.textContent = String(rate);
+        if (latency) latency.textContent = `${Math.round(168 + Math.cos(tick / 2) * 22)} ms`;
+        if (success) success.textContent = `${(98.1 + Math.sin(tick / 3) * 0.3).toFixed(1)}%`;
+        if (events) {
+          const item = document.createElement('li');
+          item.innerHTML = `<span>${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <strong>snapshot.${tick}</strong><small>${rate} payments/s · append</small>`;
+          events.prepend(item);
+          while (events.children.length > 5) events.lastElementChild?.remove();
+        }
       }, 1000);
     };
     start();
@@ -250,35 +300,6 @@ export function startVisualStackDemo() {
         status.textContent = 'Receiving 1 update / second';
       }
     });
-  }
-
-  function toggleStreaming() {
-    const visual = rendered.get('editor-visual');
-    const button = document.querySelector<HTMLButtonElement>('#stream-toggle');
-    if (!visual || !button) return;
-    if (streamTimer) {
-      window.clearInterval(streamTimer);
-      streamTimer = undefined;
-      button.textContent = 'Start streaming';
-      return;
-    }
-    button.textContent = 'Stop streaming';
-    let tick = 0;
-    streamTimer = window.setInterval(() => {
-      try {
-        const current = parseVisualizationContract(JSON.parse(contractText));
-        tick += 1;
-        if (current.kind === 'line' || current.kind === 'area') {
-          visual.update({
-            ...current,
-            series: current.series.map((series) => ({
-              ...series,
-              values: [...series.values.slice(1), (series.values.at(-1) ?? 0) + Math.round(Math.sin(tick) * 8) + 2],
-            })),
-          });
-        } else if (current.kind === 'kpi') visual.update({ ...current, value: current.value + tick });
-      } catch { /* The editor displays validation errors. */ }
-    }, 1000);
   }
 
   function render() {
