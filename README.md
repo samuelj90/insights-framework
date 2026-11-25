@@ -1,8 +1,8 @@
-# Insights Framework
+# Visual Stack
 
-A framework-neutral TypeScript canvas library (ECharts and D3) with a small React demo. The
-demo implements the Insights Canvas prototype against synthetic data; it does not
-call the Insights API or save board changes.
+A framework-neutral TypeScript visualization library for single visuals and
+multi-visual reports. The vanilla TypeScript demo uses the same public API as
+any host application; it does not depend on React.
 
 ```shell
 npm ci
@@ -20,21 +20,26 @@ browser by setting `PLAYWRIGHT_CHANNEL=msedge`. Set `INSIGHT_PROTOTYPE` to the
 absolute path to `insight-canvas-prototype.html` to enable the optional desktop
 comparison and capture both views.
 
-In the demo, switch between Board and Thread without losing Board changes. On a
-wide Board, use the move and resize handles with the pointer or focus them and
-use the arrow keys. Placements snap to the grid; overlaps and out-of-bounds
-edits leave the last committed placement intact. A narrow Board stacks cards
-without changing their desktop positions. Reload restores the fixtures. Use a
-recent question in the composer to see a sample result, or open a card's
-inspector to see its fixture reasoning, contract, and SQL when available.
+The vanilla TypeScript demo is a GitHub Pages-ready product showcase with an
+overview, all visual kinds, a dedicated live-streaming example, and an editor
+that previews single or multiple visual definitions. Demo code is separated into [examples.ts](./demo/src/examples.ts)
+for fixtures and [showcase.ts](./demo/src/showcase.ts) for UI behavior; the
+library remains under [src/](./src/).
+
+The demo is ready for GitHub Pages. The workflow in
+[pages.yml](./.github/workflows/pages.yml) builds `demo/dist` and publishes it
+whenever `main` changes. In the repository settings, select **GitHub Actions**
+as the Pages source.
+It works from the static `demo/dist/index.html` file and uses Tailwind CSS for
+the demo shell.
 
 ## Current library API
 
-### Visual kinds (v2)
+### Visual kinds
 
 `KIND_RULES` is the single source of truth for what each kind accepts. Hosts
 validate an AI-proposed query plan against it before running a query, and
-`knowledge/visualization-v2.json` describes the same rules to an AI host.
+`knowledge/visualization.json` describes the same rules to an AI host.
 "Groups" counts categorical dimensions plus the time dimension; "additive"
 kinds need counts or sums, because they show parts of a whole.
 
@@ -56,8 +61,8 @@ kinds need counts or sums, because they show parts of a whole.
 
 ### Display contract
 
-Every v2 payload has `version: '2'`, `kind`, `title` and `unit`, plus the data
-for its shape:
+Before release, contracts use one current schema: `kind`, `title` and `unit`,
+plus the data for its shape:
 
 - `kpi`: `value`
 - `bar`, `column`, `donut`, `treemap`, `funnel`: `data: [{ label, value }]`
@@ -68,9 +73,11 @@ for its shape:
 - `sankey`: `links: [{ source, target, value }]`
 - `table`: `columns` and `rows`, where cells are string, number or `null`
 
-`parseVisualizationContract` validates a payload at runtime and still accepts
-v1 bar and donut payloads. `renderVisualization(element, payload, { theme })`
-validates and renders it, and returns `{ destroy() }`. The host owns AI,
+`parseVisualizationContract` validates a payload at runtime.
+`renderVisualization(element, payload, { theme })` validates and renders it,
+and returns `{ update(nextPayload), destroy() }`. `update` supports streaming
+snapshots without replacing the chart instance while the visual kind stays the
+same. The host owns AI,
 privacy, fetching, and binding authorized data; the library never fetches.
 
 ### Rendering
@@ -109,28 +116,22 @@ widens to fill it. It returns the same `GridResult` as `GridContainer.create`.
   an initial layout. Use `addItem`, `updateItem`, and `removeItem` on the returned
   grid to obtain a new grid or an explicit failure reason. Widget content is
   caller-owned. A placement has zero-based `x`, `y` and positive `w`, `h`.
-- `createChart(element, spec)` is the original D3 SVG renderer for a horizontal
-  bar chart or line panels with a shared x-axis, and still renders v1 bar
-  contracts. The returned object supports `updateData(spec)` and `destroy()`.
+- `createChart(element, spec)` is the D3 renderer for legacy low-level bar and
+  line-panel specs. It returns `updateData(spec)` and `destroy()`.
 - Pointer and keyboard bindings live in the example app. The upstream DOM
   selector API, a public plugin interface, and npm publication are not part of
   this milestone.
 
 ## Migration boundary
 
-The existing Insights Platform remains the source of truth for live queries.
-The next step is a demo-app adapter for the existing Canvas answer contract,
-including visualization coverage and inspection metadata, without moving the
-Python backend. Compare the two Canvas implementations before cutover, and
-decide how to transfer any browser-local reports separately from backend
-reports. Export, sharing, and live refresh are intentionally unavailable in the
-fixture demo.
+Insights Platform consumes Visual Stack for governed dashboards. Visual Stack
+owns rendering, contracts, layout, and streaming updates; the platform remains
+responsible for fetching, authorization, query execution, and persistence.
 
 ## Original Visual Stack design
 
-This file was modified for Insights Framework. The upstream design is retained
-below for reference; its package-installation and API examples are proposals,
-not instructions for this fork.
+The remainder preserves the original design discussion for historical context;
+the current public API is the section above.
 
 ### Visual Stack - A Flexible Grid and Visualization Library
 

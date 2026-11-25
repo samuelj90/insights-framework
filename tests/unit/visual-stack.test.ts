@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { KIND_RULES, layoutDashboard, parseVisualizationContract, toEChartsOption, VISUAL_KINDS } from '../../src/index.js';
-import type { VisualizationContractV2, VisualKind } from '../../src/index.js';
+import type { VisualizationContract, VisualKind } from '../../src/index.js';
 
-const base = { version: '2', title: 'T', unit: 'u' } as const;
-const samples: Record<Exclude<VisualKind, 'kpi' | 'table'>, VisualizationContractV2> = {
+const base = { title: 'T', unit: 'u' } as const;
+const samples: Record<Exclude<VisualKind, 'kpi' | 'table'>, VisualizationContract> = {
   bar: { ...base, kind: 'bar', data: [{ label: 'a', value: -1 }] },
   column: { ...base, kind: 'column', data: [{ label: 'a', value: 1 }] },
   donut: { ...base, kind: 'donut', data: [{ label: 'a', value: 1 }] },
@@ -19,7 +19,7 @@ const samples: Record<Exclude<VisualKind, 'kpi' | 'table'>, VisualizationContrac
   sankey: { ...base, kind: 'sankey', links: [{ source: 'a', target: 'b', value: 1 }] },
 };
 
-describe('version 2 contracts', () => {
+describe('visualization contracts', () => {
   it('accepts every chart kind and builds an ECharts option for it', () => {
     for (const contract of Object.values(samples)) {
       expect(parseVisualizationContract(contract)).toEqual(contract);
@@ -28,12 +28,34 @@ describe('version 2 contracts', () => {
     }
   });
 
+  describe('update semantics', () => {
+    it('accepts append and bounded patch shapes as valid display contracts', () => {
+      const append = parseVisualizationContract({
+        ...base, kind: 'line', categories: ['Jan', 'Feb', 'Mar'],
+        series: [{ name: 's', values: [1, 2, 3] }],
+      });
+      expect(append.kind === 'line' && append.categories.at(-1)).toBe('Mar');
+    });
+  });
+
   it('accepts KPI and table contracts, which render as HTML', () => {
     const kpi = { ...base, kind: 'kpi', value: -2.5 };
     const table = { ...base, kind: 'table', columns: ['a', 'b'], rows: [['x', 1], [null, 2]] };
     expect(parseVisualizationContract(kpi)).toEqual(kpi);
     expect(parseVisualizationContract(table)).toEqual(table);
-    expect(() => toEChartsOption(parseVisualizationContract(kpi) as VisualizationContractV2)).toThrow(RangeError);
+    expect(() => toEChartsOption(parseVisualizationContract(kpi))).toThrow(RangeError);
+  });
+
+  it('accepts optional presentation layout without treating it as data', () => {
+    const visual = parseVisualizationContract({
+      kind: 'kpi', title: 'Payments', unit: 'payments', value: 1800,
+      layout: { minHeight: 100, maxHeight: 120, aspectRatio: 1.6 },
+    });
+    expect(visual.layout).toEqual({ minHeight: 100, maxHeight: 120, aspectRatio: 1.6 });
+    expect(() => parseVisualizationContract({
+      kind: 'kpi', title: 'Payments', unit: 'payments', value: 1800,
+      layout: { minHeight: 200, maxHeight: 100 },
+    })).toThrow(/minHeight/);
   });
 
   it('rejects contracts that would misrepresent the data', () => {
@@ -56,8 +78,8 @@ describe('version 2 contracts', () => {
 });
 
 it('publishes knowledge that matches the kind rules', () => {
-  const knowledge = JSON.parse(readFileSync(new URL('../../knowledge/visualization-v2.json', import.meta.url), 'utf8'));
-  expect(knowledge.version).toBe('2');
+  const knowledge = JSON.parse(readFileSync(new URL('../../knowledge/visualization.json', import.meta.url), 'utf8'));
+  expect('version' in knowledge).toBe(false);
   expect(knowledge.kinds).toEqual(JSON.parse(JSON.stringify(KIND_RULES)));
   expect(Object.keys(knowledge.kinds)).toEqual(VISUAL_KINDS);
 });

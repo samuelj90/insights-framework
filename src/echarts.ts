@@ -1,5 +1,5 @@
 import type { EChartsCoreOption } from 'echarts/core';
-import type { VisualizationContractV2 } from './contract-schema.js';
+import type { VisualizationContract } from './contract-schema.js';
 
 export interface VisualTheme {
   readonly text: string;
@@ -30,7 +30,7 @@ function axes(theme: VisualTheme) {
   };
 }
 
-export function toEChartsOption(contract: VisualizationContractV2, theme: VisualTheme = DEFAULT_THEME): EChartsCoreOption {
+export function toEChartsOption(contract: VisualizationContract, theme: VisualTheme = DEFAULT_THEME): EChartsCoreOption {
   const { category, value } = axes(theme);
   const base = {
     animationDuration: 300,
