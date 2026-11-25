@@ -5,6 +5,9 @@ test('overview presents the product story and preview', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Build the view/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Inspector' })).toHaveCount(0);
   await expect(page.locator('#overview-visual')).toHaveAttribute('role', 'img');
+  await expect(page.getByText('Processed volume')).toBeVisible();
+  await expect(page.getByText('Payment methods')).toBeVisible();
+  await expect(page.getByText('processor_a recovered')).toBeVisible();
   await expect(page.getByText('From snapshot to story')).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeHidden();
 });

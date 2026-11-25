@@ -52,11 +52,26 @@ button:disabled { @apply cursor-default; }
 .hero-window { @apply overflow-hidden rounded-xl border border-strong bg-plate shadow-2xl; transform: perspective(1000px) rotateY(-3deg) rotateX(1deg); }
 .hero-window-bar { @apply flex gap-1.5 border-b border-rule bg-sunk px-4 py-3; }
 .hero-window-bar span { @apply size-2 rounded-full bg-strong; }
-.hero-kpis { @apply grid grid-cols-2 gap-3 p-4; }
+.hero-report-head { @apply flex items-center justify-between border-b border-rule px-4 py-3; }
+.hero-report-head small, .hero-report-head strong { @apply block; }
+.hero-report-head small { @apply text-[10px] tracking-widest text-subtle uppercase; }
+.hero-report-head strong { @apply mt-0.5 text-sm; }
+.hero-report-head > span { @apply rounded-full bg-accent/15 px-2 py-1 text-[10px] font-semibold text-accent uppercase; }
+.hero-kpis { @apply grid grid-cols-3 gap-2 px-4 pt-4; }
 .hero-kpis > div { @apply rounded-md border border-rule bg-sunk p-4; }
 .hero-kpis small { @apply block text-xs text-muted; }
-.hero-kpis strong { @apply mt-1 block font-mono text-2xl text-ink; }
-.hero-chart { @apply h-80; }
+.hero-kpis strong { @apply mt-1 block font-mono text-xl text-ink; }
+.hero-report-grid { @apply grid grid-cols-[minmax(0,1fr)_150px] gap-3 p-4; }
+.hero-chart { @apply h-72 rounded-md border border-rule bg-sunk; }
+.hero-side { @apply rounded-md border border-rule bg-sunk p-3; }
+.hero-side > p { @apply mb-2 text-[10px] tracking-widest text-subtle uppercase; }
+.hero-side > div { @apply flex items-center justify-between border-b border-rule py-2 text-xs last:border-0; }
+.hero-side span { @apply text-muted; }
+.hero-side strong { @apply font-mono font-medium text-ink; }
+.hero-incidents { @apply mx-4 mb-4 flex items-center gap-3 rounded-md border border-rule bg-sunk px-3 py-2; }
+.hero-incidents p { @apply flex-1 text-xs text-muted; }
+.hero-incidents small { @apply font-mono text-[10px] text-subtle; }
+.incident-ok { @apply rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent uppercase; }
 .hero-float { @apply absolute -right-5 -bottom-5 rounded-lg border border-accent/30 bg-canvas p-4 shadow-xl; }
 .hero-float span { @apply rounded-full bg-accent/15 px-2 py-1 text-[10px] font-semibold text-accent uppercase; }
 .hero-float strong, .hero-float small { @apply block; }
@@ -115,15 +130,15 @@ button:disabled { @apply cursor-default; }
 .eyebrow { @apply mb-1 text-[11px] tracking-[.12em] text-accent uppercase; }
 .visual-grid { @apply mx-auto grid max-w-6xl grid-cols-12 gap-4; }
 .visual-card { @apply col-span-4 min-w-0 overflow-hidden rounded-md border border-rule bg-plate; }
-.visual-card.col-3 { @apply col-span-3; }
-.visual-card.col-6 { @apply col-span-6; }
-.visual-card.col-8 { @apply col-span-8; }
+.visual-card.col-3, .visual-card.col-6, .visual-card.col-8 { @apply col-span-4; }
 .visual-card.col-12 { @apply col-span-12; }
 .visual-card > header { @apply flex items-center justify-between gap-3 border-b border-rule px-3.5 py-3; }
 .visual-card h2 { @apply mt-0.5 text-sm font-medium; }
 .visual-card > header p { @apply text-[10px] tracking-widest text-accent uppercase; }
 .visual-card footer { @apply border-t border-rule px-3.5 py-2 text-[11px] leading-relaxed text-subtle; }
 .visual-mount { @apply min-h-64 p-3; }
+.visual-card:not([data-kind="kpi"]):not([data-kind="table"]) { @apply grid grid-rows-[auto_1fr_auto]; }
+.visual-card:not([data-kind="kpi"]):not([data-kind="table"]) .visual-mount { @apply min-h-72; }
 .visual-card[data-kind="kpi"] .visual-mount { @apply min-h-28; }
 .report-grid { grid-auto-rows: minmax(180px, auto); }
 .report-preview { @apply grid grid-cols-12 gap-4; }
@@ -162,6 +177,8 @@ button:disabled { @apply cursor-default; }
   .hero-showcase { @apply grid-cols-1 py-10; }
   .hero-copy h1 { @apply text-4xl; }
   .hero-visual { @apply mt-2; }
+  .hero-report-grid { @apply grid-cols-1; }
+  .hero-side { @apply grid grid-cols-2 gap-x-3; }
   .story-strip { @apply grid-cols-2; }
   .story-strip > p { @apply col-span-2; }
   .audience-band { @apply grid-cols-1; }
@@ -179,6 +196,8 @@ button:disabled { @apply cursor-default; }
   .hero-actions, .overview-cta > div { @apply flex-col; }
   .hero-proof { @apply gap-2; }
   .hero-float { @apply -right-1 -bottom-3; }
+  .hero-kpis { @apply grid-cols-1; }
+  .hero-incidents { @apply items-start; }
   .audience-points { @apply grid-cols-1; }
   .live-metrics { @apply grid-cols-1; }
   .event-stream li { @apply grid-cols-[auto_1fr]; }

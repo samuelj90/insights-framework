@@ -44,7 +44,7 @@ export function startVisualStackDemo() {
 
   function tile(kind: VisualKind) {
     const contract = examples[kind];
-    return `<article class="visual-card col-${KIND_RULES[kind].size.w}" data-kind="${kind}">
+    return `<article class="visual-card col-4" data-kind="${kind}">
       <header><div><p>${escape(KIND_RULES[kind].family)}</p><h2>${escape(contract.title)}</h2></div>
         <button type="button" data-open="${kind}">Inspect</button></header>
       <div class="visual-mount" id="visual-${kind}"></div>
@@ -77,9 +77,16 @@ export function startVisualStackDemo() {
       </div>
       <div class="hero-visual" aria-label="Visual Stack report preview">
         <div class="hero-window"><div class="hero-window-bar"><span></span><span></span><span></span></div>
-          <div class="hero-kpis"><div><small>Payments</small><strong>1,800</strong></div><div><small>Success rate</small><strong>81.2%</strong></div></div>
-          <div class="hero-chart" id="overview-visual"></div></div>
-        <div class="hero-float"><span>Live</span><strong>processor_a</strong><small>Updates in place</small></div>
+          <div class="hero-report-head"><div><small>Payments overview</small><strong>Today · UTC</strong></div><span>Live</span></div>
+          <div class="hero-kpis"><div><small>Processed volume</small><strong>$684.2k</strong></div>
+            <div><small>Success rate</small><strong>98.2%</strong></div><div><small>P95 latency</small><strong>184 ms</strong></div></div>
+          <div class="hero-report-grid"><div class="hero-chart" id="overview-visual"></div>
+            <div class="hero-side"><p>Payment methods</p><div><span>Card</span><strong>64%</strong></div>
+              <div><span>Wallet</span><strong>22%</strong></div><div><span>Bank redirect</span><strong>10%</strong></div>
+              <div><span>Pay later</span><strong>4%</strong></div></div></div>
+          <div class="hero-incidents"><span class="incident-ok">Healthy</span>
+            <p>processor_a recovered after a 3-minute timeout spike</p><small>2 min ago</small></div></div>
+        <div class="hero-float"><span>Streaming</span><strong>84 payments/s</strong><small>Chart updated in place</small></div>
       </div></section>
       <section class="story-strip"><p>Designed for the full decision path</p>
         <div><span>01</span><strong>Choose</strong><small>the clearest visual for the question</small></div>
@@ -300,8 +307,18 @@ export function startVisualStackDemo() {
   }
 
   function startOverviewPreview() {
-    const line = examples.line;
-    if (line.kind !== 'line') return;
+    const line = {
+      ...examples.line,
+      kind: 'line' as const,
+      title: 'Processed payments',
+      unit: 'payments / min',
+      categories: ['08:00', '08:05', '08:10', '08:15', '08:20', '08:25', '08:30', '08:35'],
+      series: [
+        { name: 'processor_a', values: [72, 78, 81, 79, 88, 91, 86, 89] },
+        { name: 'processor_b', values: [54, 58, 61, 59, 63, 67, 65, 68] },
+        { name: 'processor_c', values: [31, 35, 28, 33, 37, 40, 38, 42] },
+      ],
+    };
     mount('overview-visual', line);
     const visual = rendered.get('overview-visual');
     if (!visual) return;
