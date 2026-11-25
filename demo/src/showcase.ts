@@ -1,0 +1,297 @@
+import {
+  KIND_RULES, VISUAL_KINDS, layoutDashboard, parseVisualizationContract, renderVisualization,
+} from '../../src/index.js';
+import type { RenderedVisualization, VisualKind } from '../../src/index.js';
+import { examples } from './examples.js';
+
+type Mode = 'overview' | 'gallery' | 'live' | 'editor';
+
+export function startVisualStackDemo() {
+  const root = document.querySelector<HTMLDivElement>('#root');
+  if (!root) throw new Error('Visual Stack root is missing.');
+
+  let mode: Mode = 'overview';
+  let selected: VisualKind = 'bar';
+  let contractText = JSON.stringify(examples[selected], null, 2);
+  let inspectorOpen = true;
+  let streamTimer: number | undefined;
+  const rendered = new Map<string, RenderedVisualization>();
+
+  const escape = (value: unknown) => String(value ?? '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+
+  function destroyCharts() {
+    if (streamTimer) window.clearInterval(streamTimer);
+    streamTimer = undefined;
+    for (const visual of rendered.values()) visual.destroy();
+    rendered.clear();
+  }
+
+  function mount(id: string, contract: unknown) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    rendered.set(id, renderVisualization(element, contract));
+  }
+
+  function tile(kind: VisualKind) {
+    const contract = examples[kind];
+    return `<article class="visual-card col-${KIND_RULES[kind].size.w}" data-kind="${kind}">
+      <header><div><p>${escape(KIND_RULES[kind].family)}</p><h2>${escape(contract.title)}</h2></div>
+        <button type="button" data-open="${kind}">Inspect</button></header>
+      <div class="visual-mount" id="visual-${kind}"></div>
+      <footer>${escape(KIND_RULES[kind].use)}</footer></article>`;
+  }
+
+  function inspectorBody() {
+    const rule = KIND_RULES[selected];
+    return `<h2>${escape(examples[selected].title)}</h2><dl>
+      <div><dt>Kind</dt><dd>${selected}</dd></div><div><dt>Family</dt><dd>${rule.family}</dd></div>
+      <div><dt>Time</dt><dd>${rule.time}</dd></div><div><dt>Additive</dt><dd>${rule.additive ? 'yes' : 'no'}</dd></div>
+      </dl><p>${escape(rule.use)}</p><pre>${escape(JSON.stringify(examples[selected], null, 2))}</pre>`;
+  }
+
+  function gallery() {
+    return `<section class="intro"><p class="eyebrow">Visual collection</p><h1>One definition. Every visual.</h1>
+      <p>Explore all ${VISUAL_KINDS.length} Visual Stack kinds.</p></section>
+      <section class="visual-grid">${VISUAL_KINDS.map(tile).join('')}</section>`;
+  }
+
+  function overview() {
+    return `<section class="hero hero-showcase">
+      <div class="hero-copy"><p class="eyebrow">Visual Stack</p>
+        <h1>Build the view.<br><span>Keep the context.</span></h1>
+        <p>Visual Stack turns one governed result into the right visual—and multiple results into a coherent, responsive report.</p>
+        <div class="hero-actions"><button type="button" data-mode="gallery">Explore ${VISUAL_KINDS.length} visuals</button>
+          <button type="button" class="secondary" data-mode="editor">Build a visual</button></div>
+        <dl class="hero-proof"><div><dt>${VISUAL_KINDS.length}</dt><dd>visual kinds</dd></div>
+          <div><dt>1</dt><dd>stable definition</dd></div><div><dt>Live</dt><dd>in-place updates</dd></div></dl>
+      </div>
+      <div class="hero-visual" aria-label="Visual Stack report preview">
+        <div class="hero-window"><div class="hero-window-bar"><span></span><span></span><span></span></div>
+          <div class="hero-kpis"><div><small>Payments</small><strong>1,800</strong></div><div><small>Success rate</small><strong>81.2%</strong></div></div>
+          <div class="hero-chart" id="overview-visual"></div></div>
+        <div class="hero-float"><span>Live</span><strong>processor_a</strong><small>Updates in place</small></div>
+      </div></section>
+      <section class="story-strip"><p>Designed for the full decision path</p>
+        <div><span>01</span><strong>Choose</strong><small>the clearest visual for the question</small></div>
+        <div><span>02</span><strong>Compose</strong><small>a readable report from many results</small></div>
+        <div><span>03</span><strong>Explain</strong><small>the meaning, data and confidence</small></div>
+        <div><span>04</span><strong>Refresh</strong><small>without losing the user’s place</small></div>
+      </section>
+      <section class="overview-section">
+        <div class="section-heading"><p class="eyebrow">From snapshot to story</p><h2>More than a chart gallery.</h2>
+          <p>Visual Stack decides the shape, packs the report, preserves context, and keeps it current.</p></div>
+        <div class="capability-grid">
+          <article><span>Choose</span><h2>Visual semantics</h2><p>Definitions describe the question, not a specific charting API.</p></article>
+          <article><span>Compose</span><h2>Report layout</h2><p>KPIs, trends, comparisons, flows, and detail tables form one readable surface.</p></article>
+          <article><span>Update</span><h2>Live data</h2><p>Validated snapshots refresh an existing visual without rebuilding the experience.</p></article>
+          <article><span>Explain</span><h2>Inspectable results</h2><p>Every visual keeps its definition, rationale, and display metadata available.</p></article>
+        </div>
+      </section>
+      <section class="audience-band"><div><p class="eyebrow">Built for product teams</p>
+        <h2>Analytics that fits the application—not the other way around.</h2></div>
+        <div class="audience-points"><p>✓ Framework-neutral rendering</p><p>✓ Single and multi-visual views</p>
+          <p>✓ Theming through host design tokens</p><p>✓ Streaming and snapshot updates</p></div>
+      </section>
+      <section class="overview-cta"><p class="eyebrow">Start with the result</p><h2>Try the building blocks.</h2>
+        <div><button type="button" data-mode="gallery">Explore the gallery</button>
+          <button type="button" class="secondary" data-mode="live">Watch a live view</button></div></section>`;
+  }
+
+  function live() {
+    return `<section class="intro"><p class="eyebrow">Live views</p><h1>Streaming without chart churn</h1>
+      <p>Visual Stack receives validated snapshots from any host transport and updates the existing visual in place.</p></section>
+      <section class="live-demo-grid">
+        <article class="live-story"><p class="eyebrow">Payments per second</p>
+          <div class="visual-mount live-hero" id="live-demo-visual"></div>
+          <div class="live-controls"><button type="button" id="live-demo-toggle">Pause stream</button>
+            <span id="live-status">Receiving 1 update / second</span></div></article>
+        <aside class="live-copy"><h2>Transport is your choice</h2>
+          <p>Connect SSE, WebSocket, polling, or an in-process event source in the host application.</p>
+          <pre><code>source.onmessage = (event) => {
+  visual.update(JSON.parse(event.data));
+};</code></pre>
+          <ul><li>Reuse the chart instance</li><li>Validate every snapshot</li><li>Bound the rolling window in the host</li><li>Clean up with <code>destroy()</code></li></ul>
+        </aside>
+      </section>`;
+  }
+
+  function editor() {
+    return `<section class="intro"><p class="eyebrow">Try Visual Stack</p><h1>Build and preview</h1>
+      <p>Edit a visual definition, or paste several to compose a report.</p>
+      <button type="button" id="load-report">Load report example</button></section>
+      <section class="editor-grid"><label class="editor-pane"><span>Visual definition</span>
+        <textarea id="contract-editor" aria-label="Visualization contract JSON" spellcheck="false">${escape(contractText)}</textarea></label>
+        <div class="preview-pane"><div class="preview-head"><span>Preview</span>
+          <button type="button" id="stream-toggle">Start streaming</button></div>
+          <div class="visual-mount editor-visual" id="editor-visual"></div><p id="contract-error" role="alert" hidden></p>
+        </div></section>`;
+  }
+
+  function updateInspector() {
+    const inspector = document.querySelector<HTMLElement>('.inspector');
+    if (inspector) inspector.innerHTML = inspectorBody();
+  }
+
+  function renderContractReport(values: unknown[], error: HTMLElement | null) {
+    const contracts = values.map(parseVisualizationContract);
+    const layout = layoutDashboard(contracts.map((contract, index) => ({
+      id: `live-${index}`, kind: contract.kind, content: contract,
+    })));
+    if (!layout.ok) throw new Error(`The report layout is invalid: ${layout.reason}.`);
+    const host = document.querySelector<HTMLElement>('#editor-visual');
+    if (!host) return;
+    for (const [key, visual] of rendered) {
+      if (key === 'editor-visual' || key.startsWith('editor-live-')) {
+        visual.destroy();
+        rendered.delete(key);
+      }
+    }
+    host.className = 'visual-mount editor-visual report-preview';
+    host.innerHTML = layout.grid.items.map((item) =>
+      `<article class="visual-card" style="grid-column:${item.layout.x + 1}/span ${item.layout.w};grid-row:${item.layout.y + 1}/span ${item.layout.h}">
+        <header><div><p>${item.content.kind}</p><h2>${escape(item.content.title)}</h2></div></header>
+        <div class="visual-mount" id="editor-${item.id}"></div></article>`).join('');
+    for (const item of layout.grid.items) mount(`editor-${item.id}`, item.content);
+    if (error) error.hidden = true;
+  }
+
+  function renderEditor() {
+    const error = document.querySelector<HTMLElement>('#contract-error');
+    try {
+      const raw = JSON.parse(contractText);
+      if (Array.isArray(raw)) return renderContractReport(raw, error);
+      const parsed = parseVisualizationContract(raw);
+      selected = parsed.kind;
+      const old = rendered.get('editor-visual');
+      const host = document.querySelector<HTMLElement>('#editor-visual');
+      if (host) host.className = 'visual-mount editor-visual';
+      if (old) {
+        try { old.update(parsed); }
+        catch { old.destroy(); rendered.delete('editor-visual'); mount('editor-visual', parsed); }
+      } else {
+        mount('editor-visual', parsed);
+      }
+      if (error) error.hidden = true;
+    } catch (cause) {
+      if (!error) return;
+      let detail = cause instanceof Error ? cause.message : 'Invalid definition.';
+      try {
+        const parsed = JSON.parse(contractText) as { kinds?: unknown };
+        if (parsed?.kinds) detail = 'This is visualization planning guidance, not a display definition.';
+      } catch { /* Keep the JSON error. */ }
+      error.textContent = detail;
+      error.hidden = false;
+    }
+    updateInspector();
+  }
+
+  function bind() {
+    document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => button.addEventListener('click', () => {
+      mode = button.dataset.mode as Mode;
+      render();
+    }));
+    document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((button) => button.addEventListener('click', () => {
+      selected = button.dataset.open as VisualKind;
+      contractText = JSON.stringify(examples[selected], null, 2);
+      inspectorOpen = true;
+      updateInspector();
+      document.querySelector('.inspector')?.removeAttribute('hidden');
+    }));
+    document.querySelector('#inspector-toggle')?.addEventListener('click', () => {
+      inspectorOpen = !inspectorOpen;
+      render();
+    });
+    const input = document.querySelector<HTMLTextAreaElement>('#contract-editor');
+    input?.addEventListener('input', () => { contractText = input.value; renderEditor(); });
+    document.querySelector('#load-report')?.addEventListener('click', () => {
+      contractText = JSON.stringify(['kpi', 'line', 'donut', 'table'].map((kind) => examples[kind as VisualKind]), null, 2);
+      render();
+    });
+    document.querySelector('#stream-toggle')?.addEventListener('click', () => toggleStreaming());
+    if (mode === 'overview') mount('overview-visual', examples.line);
+    if (mode === 'gallery') for (const kind of VISUAL_KINDS) mount(`visual-${kind}`, examples[kind]);
+    if (mode === 'live') startLiveDemo();
+    if (mode === 'editor') renderEditor();
+  }
+
+  function startLiveDemo() {
+    const line = examples.line;
+    if (line.kind !== 'line') return;
+    mount('live-demo-visual', line);
+    const visual = rendered.get('live-demo-visual');
+    const button = document.querySelector<HTMLButtonElement>('#live-demo-toggle');
+    const status = document.querySelector<HTMLElement>('#live-status');
+    if (!visual || !button || !status) return;
+    let current = line;
+    let tick = 0;
+    const start = () => {
+      streamTimer = window.setInterval(() => {
+        tick += 1;
+        const latest = current.series.map((series) => ({
+          ...series,
+          values: [...series.values.slice(1), (series.values.at(-1) ?? 0) + Math.round(Math.sin(tick) * 7) + 3],
+        }));
+        current = { ...current, categories: [...current.categories.slice(1), `+${tick}s`], series: latest };
+        visual.update(current);
+      }, 1000);
+    };
+    start();
+    button.addEventListener('click', () => {
+      if (streamTimer) {
+        window.clearInterval(streamTimer);
+        streamTimer = undefined;
+        button.textContent = 'Resume stream';
+        status.textContent = 'Stream paused';
+      } else {
+        start();
+        button.textContent = 'Pause stream';
+        status.textContent = 'Receiving 1 update / second';
+      }
+    });
+  }
+
+  function toggleStreaming() {
+    const visual = rendered.get('editor-visual');
+    const button = document.querySelector<HTMLButtonElement>('#stream-toggle');
+    if (!visual || !button) return;
+    if (streamTimer) {
+      window.clearInterval(streamTimer);
+      streamTimer = undefined;
+      button.textContent = 'Start streaming';
+      return;
+    }
+    button.textContent = 'Stop streaming';
+    let tick = 0;
+    streamTimer = window.setInterval(() => {
+      try {
+        const current = parseVisualizationContract(JSON.parse(contractText));
+        tick += 1;
+        if (current.kind === 'line' || current.kind === 'area') {
+          visual.update({
+            ...current,
+            series: current.series.map((series) => ({
+              ...series,
+              values: [...series.values.slice(1), (series.values.at(-1) ?? 0) + Math.round(Math.sin(tick) * 8) + 2],
+            })),
+          });
+        } else if (current.kind === 'kpi') visual.update({ ...current, value: current.value + tick });
+      } catch { /* The editor displays validation errors. */ }
+    }, 1000);
+  }
+
+  function render() {
+    destroyCharts();
+    root!.innerHTML = `<header class="topbar"><span class="wordmark">Visual Stack</span>
+      <span class="tag">Visuals for every story</span><div class="spacer"></div>
+      <nav class="seg" aria-label="Demo views">${(['overview', 'gallery', 'live', 'editor'] as Mode[]).map((view) =>
+        `<button type="button" data-mode="${view}" aria-pressed="${mode === view}">${(view[0] ?? '').toUpperCase() + view.slice(1)}</button>`).join('')}</nav>
+      <button type="button" id="inspector-toggle" aria-expanded="${inspectorOpen}">Inspector</button></header>
+      <div class="shell"><main>${mode === 'overview' ? overview() : mode === 'gallery' ? gallery() : mode === 'live' ? live() : editor()}</main>
+        <aside class="inspector" aria-label="Inspector"${inspectorOpen ? '' : ' hidden'}>${inspectorBody()}</aside></div>`;
+    bind();
+  }
+
+  render();
+}
