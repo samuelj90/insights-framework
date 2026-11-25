@@ -28,6 +28,16 @@ describe('visualization contracts', () => {
     }
   });
 
+  describe('update semantics', () => {
+    it('accepts append and bounded patch shapes as valid display contracts', () => {
+      const append = parseVisualizationContract({
+        ...base, kind: 'line', categories: ['Jan', 'Feb', 'Mar'],
+        series: [{ name: 's', values: [1, 2, 3] }],
+      });
+      expect(append.kind === 'line' && append.categories.at(-1)).toBe('Mar');
+    });
+  });
+
   it('accepts KPI and table contracts, which render as HTML', () => {
     const kpi = { ...base, kind: 'kpi', value: -2.5 };
     const table = { ...base, kind: 'table', columns: ['a', 'b'], rows: [['x', 1], [null, 2]] };

@@ -12,4 +12,6 @@ export type {
 export { DEFAULT_THEME, formatValue, toEChartsOption } from './echarts.js';
 export type { VisualTheme } from './echarts.js';
 export { renderVisualization } from './contract.js';
-export type { RenderOptions, RenderedVisualization } from './contract.js';
+export type {
+  RenderOptions, RenderedVisualization, UpdateOptions, VisualizationInteraction, VisualizationSnapshot,
+} from './contract.js';

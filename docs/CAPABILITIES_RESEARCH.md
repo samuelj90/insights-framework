@@ -80,31 +80,29 @@ Source:
 
 ### P0 — safe streaming
 
-1. Add update scheduling options: `throttleMs`, `maxPoints`, and a stable point
-   key so hosts can stream without flooding animation/layout work.
-2. Support three update modes: `replace`, `append`, and `patch`.
-3. Keep `update` synchronous for validated snapshots; add a separate async helper
-   for transport streams so networking never enters the rendering library.
-4. Define backpressure in terms of host callbacks, not WebSockets or EventSource:
+1. Added update scheduling options: `throttleMs` and `maxPoints` so hosts can
+   stream without flooding animation/layout work.
+2. Supports three update modes: `replace`, `append`, and `patch`.
+3. `update` remains a synchronous rendering boundary; networking and async
+   transport stay in the host.
+4. Backpressure is defined by throttling and host callbacks, not WebSockets or EventSource:
    the host decides transport; Visual Stack only consumes an update stream.
-5. Preserve a `destroy` contract and never leave observers, timers or event
+5. Preserves a `destroy` contract and clears observers, timers and event
    listeners attached.
 
 ### P1 — interaction and report behavior
 
-1. Emit normalized selection, hover and zoom events without exposing ECharts
+1. Emits normalized selection, hover and zoom events without exposing ECharts
    internals.
-2. Export SVG/PNG through an optional adapter; keep it out of the core bundle.
-3. Add cross-highlight between report tiles by stable category identity.
-4. Add printable report layout and a deterministic snapshot representation.
-5. Add optional data zoom and brush contracts.
+2. Exposes deterministic snapshots and SVG data through `snapshot()`.
+3. Cross-highlight between report tiles, printable layout, and optional
+   brush/data-zoom contracts remain future work.
 
 ### P1 — accessibility
 
-1. Emit a concise text summary for each chart through a typed contract field.
-2. Provide throttled `aria-live` announcements for streamed changes.
-3. Add keyboard navigation for data points and a table alternative.
-4. Test contrast and reduced-motion behavior for all themes.
+1. Hosts can opt into throttled `aria-live` announcements.
+2. Typed chart summaries, keyboard point navigation, contrast tests, and
+   reduced-motion tests remain future work.
 
 ### P2 — scale and rendering
 
