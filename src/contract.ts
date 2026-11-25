@@ -110,6 +110,7 @@ function renderKpi(element: HTMLElement, contract: KpiContract, options: RenderO
       const next = limitPoints(mergeUpdate(current, value, update.mode), update.maxPoints);
       if (next.kind !== 'kpi') throw new TypeError('A KPI can only be updated with another KPI contract.');
       current = next;
+      applyLayout(element, next.layout);
       renderKpi(element, next, options);
       announce(options, `${next.title} updated.`);
   };
@@ -156,6 +157,7 @@ function renderTable(element: HTMLElement, contract: TableContract, options: Ren
       const next = limitPoints(mergeUpdate(current, value, update?.mode), update?.maxPoints);
       if (next.kind !== 'table') throw new TypeError('A table can only be updated with another table contract.');
       current = next;
+      applyLayout(element, next.layout);
       renderTable(element, next, options);
       announce(options, `${next.title} updated.`);
     },
@@ -168,6 +170,7 @@ function renderTable(element: HTMLElement, contract: TableContract, options: Ren
 
 export function renderVisualization(element: HTMLElement, value: unknown, options: RenderOptions = {}): RenderedVisualization {
   const contract = parseVisualizationContract(value);
+  applyLayout(element, contract.layout);
   if (contract.kind === 'kpi') return renderKpi(element, contract, options);
   if (contract.kind === 'table') return renderTable(element, contract, options);
 
@@ -196,7 +199,8 @@ export function renderVisualization(element: HTMLElement, value: unknown, option
     const next = limitPoints(mergeUpdate(current, value, update.mode), update.maxPoints);
     if (next.kind !== current.kind) throw new TypeError('Use destroy() and renderVisualization() before changing visual kind.');
     current = next;
-    chart.setOption(toEChartsOption(next, { ...DEFAULT_THEME, ...options.theme }), true);
+    applyLayout(element, next.layout);
+    chart.setOption(toEChartsOption(next, { ...DEFAULT_THEME, ...options.theme }));
     requestAnimationFrame(() => chart.resize());
     announce(options, `${next.title} updated.`);
   };
@@ -233,4 +237,10 @@ export function renderVisualization(element: HTMLElement, value: unknown, option
       element.replaceChildren();
     },
   };
+}
+
+function applyLayout(element: HTMLElement, layout: VisualizationContract['layout']) {
+  element.style.minHeight = layout?.minHeight ? `${layout.minHeight}px` : '';
+  element.style.maxHeight = layout?.maxHeight ? `${layout.maxHeight}px` : '';
+  element.style.aspectRatio = layout?.aspectRatio ? String(layout.aspectRatio) : '';
 }

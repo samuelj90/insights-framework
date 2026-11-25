@@ -6,6 +6,13 @@ interface Base<K extends VisualKind> {
   readonly kind: K;
   readonly title: string;
   readonly unit: string;
+  readonly layout?: VisualLayout;
+}
+
+export interface VisualLayout {
+  readonly minHeight?: number;
+  readonly maxHeight?: number;
+  readonly aspectRatio?: number;
 }
 
 export type Cell = string | number | null;
@@ -69,11 +76,28 @@ function labels(value: unknown, name: string): string[] {
 function parseCurrent(value: Record<string, unknown>): VisualizationContract {
   const kind = value.kind;
   if (!isVisualKind(kind)) fail('unsupported kind.');
-  if (!keysMatch(value, ['kind', 'title', 'unit', ...FIELDS[kind]])) {
-    fail(`a ${kind} requires exactly kind, title, unit and ${FIELDS[kind].join(', ')}.`);
+  const allowed = ['kind', 'title', 'unit', 'layout', ...FIELDS[kind]];
+  if (!keysMatch(value, Object.hasOwn(value, 'layout')
+    ? allowed
+    : allowed.filter((key) => key !== 'layout'))) {
+    fail(`a ${kind} requires kind, title, unit and ${FIELDS[kind].join(', ')}, with optional layout.`);
   }
   if (!isText(value.title) || typeof value.unit !== 'string') fail('a title and unit are required.');
-  const base = { title: value.title, unit: value.unit };
+  const layout = value.layout;
+  if (layout !== undefined && (!isRecord(layout) || !Object.keys(layout).every(
+    (key) => key === 'minHeight' || key === 'maxHeight' || key === 'aspectRatio',
+  ))) {
+    fail('layout supports only minHeight, maxHeight and aspectRatio.');
+  }
+  if (layout) {
+    for (const [key, item] of Object.entries(layout)) {
+      if (!isFinite(item) || item <= 0) fail(`layout.${key} must be a positive finite number.`);
+    }
+    if (isFinite(layout.minHeight) && isFinite(layout.maxHeight) && layout.minHeight > layout.maxHeight) {
+      fail('layout.minHeight cannot exceed layout.maxHeight.');
+    }
+  }
+  const base = { title: value.title, unit: value.unit, ...(layout ? { layout: layout as VisualLayout } : {}) };
   const additive = KIND_RULES[kind].additive;
 
   switch (kind) {

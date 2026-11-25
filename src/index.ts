@@ -6,7 +6,7 @@ export { KIND_RULES, VISUAL_KINDS, isVisualKind } from './kinds.js';
 export type { KindRule, VisualFamily, VisualKind } from './kinds.js';
 export { parseVisualizationContract } from './contract-schema.js';
 export type {
-  CategoryContract, Cell, HeatmapContract, KpiContract, SankeyContract, ScatterContract, Series, SeriesContract,
+  CategoryContract, Cell, HeatmapContract, KpiContract, SankeyContract, ScatterContract, Series, SeriesContract, VisualLayout,
   TableContract, VisualizationContract,
 } from './contract-schema.js';
 export { DEFAULT_THEME, formatValue, toEChartsOption } from './echarts.js';

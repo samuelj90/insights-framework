@@ -28,6 +28,9 @@ test('live page demonstrates streaming updates', async ({ page }) => {
   await page.getByRole('button', { name: 'Live', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Streaming without chart churn' })).toBeVisible();
   await expect(page.locator('#live-status')).toContainText('Receiving');
+  await expect(page.locator('#live-demo-visual')).toHaveAttribute('role', 'img');
+  await page.waitForTimeout(1200);
+  await expect(page.locator('#live-demo-visual')).toHaveAttribute('aria-label', 'Live payment stream');
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Pause stream' }).click();
   await expect(page.locator('#live-status')).toContainText('paused');

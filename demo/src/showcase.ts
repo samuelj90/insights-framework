@@ -254,8 +254,14 @@ export function startVisualStackDemo() {
   }
 
   function startLiveDemo() {
-    const line = examples.line;
-    if (line.kind !== 'line') return;
+    const base = examples.line;
+    if (base.kind !== 'line') return;
+    const line = {
+      ...base,
+      title: 'Live payment stream',
+      unit: 'payments / second',
+      series: [{ name: 'Payments', values: [...base.series[0]!.values] }],
+    };
     mount('live-demo-visual', line);
     const visual = rendered.get('live-demo-visual');
     const button = document.querySelector<HTMLButtonElement>('#live-demo-toggle');
@@ -314,11 +320,7 @@ export function startVisualStackDemo() {
       title: 'Processed payments',
       unit: 'payments / min',
       categories: ['08:00', '08:05', '08:10', '08:15', '08:20', '08:25', '08:30', '08:35'],
-      series: [
-        { name: 'processor_a', values: [72, 78, 81, 79, 88, 91, 86, 89] },
-        { name: 'processor_b', values: [54, 58, 61, 59, 63, 67, 65, 68] },
-        { name: 'processor_c', values: [31, 35, 28, 33, 37, 40, 38, 42] },
-      ],
+      series: [{ name: 'Processed payments', values: [157, 171, 170, 171, 188, 198, 189, 199] }],
     };
     mount('overview-visual', line);
     const visual = rendered.get('overview-visual');

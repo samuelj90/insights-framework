@@ -46,6 +46,18 @@ describe('visualization contracts', () => {
     expect(() => toEChartsOption(parseVisualizationContract(kpi))).toThrow(RangeError);
   });
 
+  it('accepts optional presentation layout without treating it as data', () => {
+    const visual = parseVisualizationContract({
+      kind: 'kpi', title: 'Payments', unit: 'payments', value: 1800,
+      layout: { minHeight: 100, maxHeight: 120, aspectRatio: 1.6 },
+    });
+    expect(visual.layout).toEqual({ minHeight: 100, maxHeight: 120, aspectRatio: 1.6 });
+    expect(() => parseVisualizationContract({
+      kind: 'kpi', title: 'Payments', unit: 'payments', value: 1800,
+      layout: { minHeight: 200, maxHeight: 100 },
+    })).toThrow(/minHeight/);
+  });
+
   it('rejects contracts that would misrepresent the data', () => {
     for (const invalid of [
       { ...samples.donut, data: [{ label: 'a', value: -1 }] },
