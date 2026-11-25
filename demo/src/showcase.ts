@@ -3,6 +3,8 @@ import {
 } from '../../src/index.js';
 import type { RenderedVisualization, VisualKind } from '../../src/index.js';
 import { examples } from './examples.js';
+import { createJsonEditor } from './json-editor.js';
+import type { JsonEditor } from './json-editor.js';
 
 type Mode = 'overview' | 'gallery' | 'live' | 'editor';
 
@@ -14,8 +16,10 @@ export function startVisualStackDemo() {
   let selected: VisualKind = 'bar';
   let contractText = JSON.stringify(examples[selected], null, 2);
   let inspectorOpen = false;
+  let editorOpen = true;
   let streamTimer: number | undefined;
   const rendered = new Map<string, RenderedVisualization>();
+  let jsonEditor: JsonEditor | undefined;
   const clockLabel = (offsetSeconds = 0) => new Date(Date.now() + offsetSeconds * 1000)
     .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   const rollingLabels = (count: number, stepSeconds: number) =>
@@ -30,6 +34,8 @@ export function startVisualStackDemo() {
     streamTimer = undefined;
     for (const visual of rendered.values()) visual.destroy();
     rendered.clear();
+    jsonEditor?.destroy();
+    jsonEditor = undefined;
   }
 
   function subscribeEditorInteractions() {
@@ -146,18 +152,21 @@ export function startVisualStackDemo() {
   function editor() {
     return `<section class="intro"><p class="eyebrow">Try Visual Stack</p><h1>Build and preview</h1>
       <p>Edit a visual definition, or paste several to compose a report.</p>
+      <button type="button" id="toggle-editor">${editorOpen ? 'Hide editor' : 'Show editor'}</button>
       <label class="example-select">Layout example
         <select id="layout-example">
+          <option value="sized">Sized visual</option>
           <option value="executive">Executive overview</option>
           <option value="operations">Operations</option>
           <option value="detail">Detail analysis</option>
         </select>
       </label>
       <button type="button" id="load-report">Load layout</button></section>
-      <section class="editor-grid"><label class="editor-pane"><span>Visual definition</span>
-        <textarea id="contract-editor" aria-label="Visualization contract JSON" spellcheck="false"
-          aria-controls="editor-completions" aria-autocomplete="list">${escape(contractText)}</textarea>
-        <div id="editor-completions" class="completion-list" role="listbox" hidden></div></label>
+      <section class="editor-workspace ${editorOpen ? 'editor-open' : ''}"><div class="editor-pane">
+        <div class="editor-pane-head"><span>Visual definition</span>
+          <button type="button" id="format-json">Format JSON</button></div>
+        <div id="contract-editor"></div>
+      </div>
         <div class="preview-pane"><div class="preview-head"><span>Preview</span><div>
           <button type="button" id="copy-snapshot">Copy snapshot</button>
           <button type="button" id="export-svg">Export SVG</button></div></div>
@@ -237,26 +246,24 @@ export function startVisualStackDemo() {
       updateInspector();
       document.querySelector('.inspector')?.removeAttribute('hidden');
     }));
-    const input = document.querySelector<HTMLTextAreaElement>('#contract-editor');
-    input?.addEventListener('input', () => {
-      contractText = input.value;
-      renderEditor();
-      showCompletions(input);
-    });
-    input?.addEventListener('keydown', (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.code === 'Space') {
-        event.preventDefault();
-        showCompletions(input, true);
-      }
-      if (event.key === 'Escape') hideCompletions();
-      const active = document.querySelector<HTMLButtonElement>('#editor-completions button');
-      if (active && (event.key === 'Tab' || event.key === 'Enter')) {
-        event.preventDefault();
-        active.click();
-      }
-    });
+    if (mode === 'editor') {
+      const host = document.querySelector<HTMLElement>('#contract-editor');
+      if (host) jsonEditor = createJsonEditor(host, contractText, (value) => {
+        contractText = value;
+        renderEditor();
+      });
+    }
+    document.querySelector('#format-json')?.addEventListener('click', () => jsonEditor?.format());
     document.querySelector('#load-report')?.addEventListener('click', () => {
       const preset = document.querySelector<HTMLSelectElement>('#layout-example')?.value ?? 'executive';
+      if (preset === 'sized') {
+        contractText = JSON.stringify({
+          ...examples.line,
+          layout: { minHeight: 280, maxHeight: 360, aspectRatio: 1.6 },
+        }, null, 2);
+        render();
+        return;
+      }
       const kinds: VisualKind[] = preset === 'operations'
         ? ['kpi', 'line', 'heatmap', 'bar', 'table']
         : preset === 'detail'
@@ -268,6 +275,13 @@ export function startVisualStackDemo() {
       contractText = JSON.stringify(contracts, null, 2);
       render();
     });
+    document.querySelector('#toggle-editor')?.addEventListener('click', () => {
+      editorOpen = !editorOpen;
+      document.querySelector('.editor-workspace')?.classList.toggle('editor-open', editorOpen);
+      const button = document.querySelector<HTMLButtonElement>('#toggle-editor');
+      if (button) button.textContent = editorOpen ? 'Hide editor' : 'Show editor';
+      rendered.get('editor-visual')?.flush();
+    });
     if (mode === 'overview') startOverviewPreview();
     if (mode === 'gallery') for (const kind of VISUAL_KINDS) mount(`visual-${kind}`, examples[kind]);
     if (mode === 'live') startLiveDemo();
@@ -276,43 +290,6 @@ export function startVisualStackDemo() {
       subscribeEditorInteractions();
     }
 
-    const completionItems = [
-      ...VISUAL_KINDS.map((kind) => ({ label: kind, insert: `"${kind}"`, detail: KIND_RULES[kind].use })),
-      ...['kind', 'title', 'unit', 'value', 'data', 'categories', 'series', 'x', 'y', 'cells',
-        'axes', 'points', 'links', 'columns', 'rows', 'layout', 'minHeight', 'maxHeight', 'aspectRatio']
-        .map((key) => ({ label: key, insert: `"${key}"`, detail: `JSON field: ${key}` })),
-    ];
-
-    function hideCompletions() {
-      const list = document.querySelector<HTMLElement>('#editor-completions');
-      if (list) list.hidden = true;
-    }
-
-    function showCompletions(input: HTMLTextAreaElement, force = false) {
-      const list = document.querySelector<HTMLElement>('#editor-completions');
-      if (!list) return;
-      const before = input.value.slice(0, input.selectionStart);
-      const match = before.match(/["A-Za-z_][A-Za-z0-9_ -]*$/);
-      const query = (match?.[0] ?? '').replaceAll('"', '').toLowerCase();
-      const matches = completionItems.filter((item) => !query || item.label.toLowerCase().includes(query)).slice(0, 8);
-      if (!force && query.length < 2 || !matches.length) { hideCompletions(); return; }
-      list.replaceChildren(...matches.map((item) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.setAttribute('role', 'option');
-        button.innerHTML = `<strong>${item.label}</strong><small>${escape(item.detail)}</small>`;
-        button.addEventListener('click', () => {
-          const start = input.selectionStart - (match?.[0].length ?? 0);
-          input.setRangeText(item.insert, start, input.selectionStart, 'end');
-          contractText = input.value;
-          hideCompletions();
-          input.focus();
-          renderEditor();
-        });
-        return button;
-      }));
-      list.hidden = false;
-    }
     document.querySelector('#copy-snapshot')?.addEventListener('click', async () => {
       const snapshot = rendered.get('editor-visual')?.snapshot();
       if (!snapshot) return;

@@ -46,7 +46,9 @@ test('editor validates contracts and explains knowledge payloads', async ({ page
   await page.getByRole('button', { name: 'Editor', exact: true }).click();
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toHaveCount(0);
   const input = page.getByLabel('Visualization contract JSON');
-  await input.fill(JSON.stringify({
+  await input.click();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type(JSON.stringify({
     kind: 'line', title: 'Live payments', unit: 'payments',
     categories: ['Jan', 'Feb'], series: [{ name: 'Payments', values: [1, 2] }],
   }));
@@ -55,7 +57,9 @@ test('editor validates contracts and explains knowledge payloads', async ({ page
   await expect(page.locator('#editor-visual svg:visible')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Copy snapshot' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export SVG' })).toBeVisible();
-  await input.fill(JSON.stringify({ guidance: 'AI planning rules', kinds: { bar: {} } }));
+  await input.click();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type(JSON.stringify({ guidance: 'AI planning rules', kinds: { bar: {} } }));
   await expect(page.getByRole('alert')).toContainText('visualization planning guidance');
 });
 
@@ -63,10 +67,11 @@ test('editor offers JSON completion for contract fields', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Editor', exact: true }).click();
   const input = page.getByLabel('Visualization contract JSON');
-  await input.fill('{"ki');
-  await expect(page.getByRole('listbox')).toContainText('kind');
-  await input.press('Control+Space');
-  await expect(page.getByRole('listbox').getByRole('option').first()).toBeVisible();
+  await input.click();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('{"ki');
+  await page.keyboard.press('Control+Space');
+  await expect(page.locator('.cm-tooltip-autocomplete')).toContainText('kind');
 });
 
 test('editor composes an array of contracts as a report', async ({ page }) => {
@@ -80,6 +85,36 @@ test('editor composes an array of contracts as a report', async ({ page }) => {
   expect(boxes.every((box) => box && box.width > 0 && box.height > 0)).toBe(true);
   const columns = new Set(boxes.map((box) => box?.x));
   expect(columns.size).toBeGreaterThan(1);
+});
+
+test('editor demonstrates single visual layout constraints', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Editor', exact: true }).click();
+  await page.getByLabel('Layout example').selectOption('sized');
+  await page.getByRole('button', { name: 'Load layout' }).click();
+  await expect(page.getByLabel('Visualization contract JSON')).toContainText('"layout"');
+  await expect(page.locator('#editor-visual')).toHaveCSS('min-height', '280px');
+});
+
+test('editor formats JSON in place', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Editor', exact: true }).click();
+  const input = page.getByLabel('Visualization contract JSON');
+  await input.click();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('{"kind":"kpi","title":"Payments","unit":"count","value":1}');
+  await page.getByRole('button', { name: 'Format JSON' }).click();
+  await expect(input).toContainText('  "kind"');
+});
+
+test('editor preview expands when the JSON panel is hidden', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Editor', exact: true }).click();
+  const before = await page.locator('.editor-pane').boundingBox();
+  await page.getByRole('button', { name: 'Hide editor' }).click();
+  await page.waitForTimeout(250);
+  const after = await page.locator('.editor-pane').boundingBox();
+  expect(after?.width ?? 0).toBeLessThan(before?.width ?? 0);
 });
 
 test('live demo exposes operational metrics and event samples', async ({ page }) => {

@@ -161,18 +161,20 @@ button:disabled { @apply cursor-default; }
 .inspector dt { @apply text-[10px] tracking-widest text-subtle uppercase; }
 .inspector dd { @apply mt-1; }
 .inspector pre { @apply overflow-auto whitespace-pre-wrap rounded border border-rule bg-sunk p-3 font-mono text-[11px] text-ink; }
-.editor-grid { @apply mx-auto grid min-h-[620px] max-w-6xl grid-cols-2 overflow-hidden rounded-md border border-rule bg-plate; }
-.editor-pane { @apply relative grid min-w-0 grid-rows-[auto_1fr] border-r border-rule bg-sunk; }
+.editor-workspace { @apply relative mx-auto min-h-[calc(100dvh-220px)] overflow-hidden rounded-md border border-rule bg-plate; }
+.editor-pane { @apply absolute inset-y-0 left-0 z-20 grid w-0 min-w-0 grid-rows-[auto_1fr] overflow-hidden border-r-0 border-rule bg-sunk shadow-2xl transition-[width,border-width]; }
+.editor-pane-head { @apply flex items-center justify-between border-b border-rule px-3 py-2 text-xs text-subtle; }
+.editor-workspace.editor-open .editor-pane { @apply w-[min(520px,45vw)] border-r; }
 .editor-pane > span, .preview-head { @apply border-b border-rule px-3 py-2 text-xs text-subtle; }
-.editor-pane textarea { @apply min-h-[560px] resize-none bg-sunk p-4 font-mono text-xs leading-6 text-ink outline-none; }
-.completion-list { @apply absolute top-11 left-3 z-20 w-72 overflow-hidden rounded-md border border-strong bg-plate shadow-2xl; }
-.completion-list button { @apply flex w-full flex-col border-b border-rule px-3 py-2 text-left last:border-0 hover:bg-sunk; }
-.completion-list strong { @apply font-mono text-xs text-ink; }
-.completion-list small { @apply mt-0.5 text-[10px] leading-relaxed text-subtle; }
+#contract-editor { @apply min-h-0 overflow-auto; }
+#format-json { @apply rounded border border-rule px-2.5 py-1 text-[11px] text-muted hover:border-accent hover:text-accent; }
+.cm-editor, .cm-scroller { height: 100%; }
 .preview-head { @apply flex items-center justify-between; }
 .preview-head > div { @apply flex flex-wrap justify-end gap-1.5; }
 .preview-head button { @apply rounded border border-rule px-2 py-1 text-[11px] text-muted hover:border-accent hover:text-accent; }
-.editor-visual { @apply min-h-[560px]; }
+.preview-pane { @apply min-w-0; }
+.editor-visual { @apply min-h-[calc(100dvh-290px)]; }
+#toggle-editor { @apply mr-2 mt-3 rounded bg-accent px-3 py-1.5 text-sm font-semibold text-canvas; }
 .interaction-status { @apply mx-3 mb-3 rounded border border-rule bg-sunk px-3 py-2 text-xs text-muted; }
 #contract-error { @apply m-3 border-l-2 border-error bg-red-950/30 px-3 py-2.5 text-[13px] text-red-300; }
 .visual-mount [data-part='kpi-label'] { @apply block text-muted; }
@@ -199,8 +201,8 @@ button:disabled { @apply cursor-default; }
 }
 @media (max-width: 640px) {
   .tag { @apply hidden; }
-  .visual-grid, .editor-grid { @apply grid-cols-1; }
-  .editor-pane { @apply border-r-0 border-b border-rule; }
+  .visual-grid { @apply grid-cols-1; }
+  .editor-workspace.editor-open .editor-pane { @apply w-[min(92vw,520px)]; }
   .editor-pane textarea { @apply min-h-80; }
   .capability-grid { @apply grid-cols-1; }
   .hero-showcase { @apply py-9; }
